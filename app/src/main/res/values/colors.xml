@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B1020</color>
+    <color name="card">#121827</color>
+    <color name="text_primary">#E6EEF8</color>
+    <color name="gain">#21C17A</color>
+    <color name="loss">#FF5864</color>
+    <color name="accent">#F4B400</color>
+    <color name="purple_500">#673AB7</color>
+    <color name="black">#000000</color>
+
+</resources>

@@ -1,0 +1,24 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- حالة الضغط -->
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="#DFEDEC" />  <!-- لون الخلفية عند الضغط -->
+        </shape>
+    </item>
+
+    <!-- حالة التمكين (مفعّل) -->
+    <item android:state_selected="true">
+        <shape android:shape="oval">
+            <solid android:color="#090909" />  <!-- لون الخلفية عند التحديد -->
+        </shape>
+    </item>
+
+    <!-- الحالة العادية -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@android:color/transparent" /> <!-- خلفية شفافة عادي -->
+        </shape>
+    </item>
+
+</selector>
