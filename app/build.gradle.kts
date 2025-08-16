@@ -14,7 +14,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }  // إغلاق defaultConfig
+    }
 
     buildTypes {
         release {
@@ -33,9 +33,11 @@ android {
 }
 
 dependencies {
-
+    // Charts
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
+    // Material
+    implementation("com.google.android.material:material:1.12.0")
 
     // AndroidX Libraries
     implementation(libs.appcompat)
@@ -46,7 +48,7 @@ dependencies {
     // UI Components
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // 👈 أضف دي
 
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -54,10 +56,18 @@ dependencies {
 
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.15.1") {
-        exclude(group = "com.android.support")  // <-- هنا التعديل
+        exclude(group = "com.android.support")
     }
-    implementation(libs.swiperefreshlayout)
     annotationProcessor("com.github.bumptech.glide:compiler:4.15.1")
+
+    // Room Database
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    // WorkManager
+    implementation(libs.work.runtime)
 
     // Testing
     testImplementation(libs.junit)
