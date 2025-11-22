@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     private TextView btnHot, btnGainers, btnLosers;
 
     private enum FilterType {HOT, GAINERS, LOSERS}
-
     private FilterType currentFilter = FilterType.HOT;
 
     private final Handler handler = new Handler();
@@ -55,6 +54,91 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        rvCoins = findViewById(R.id.rvCoins);
+        etSearchCoin = findViewById(R.id.etSearchCoin);
+
+        btnHot = findViewById(R.id.btnHot);
+        btnGainers = findViewById(R.id.btnGainers);
+        btnLosers = findViewById(R.id.btnLosers);
+
+        rvCoins.setLayoutManager(new LinearLayoutManager(this));
+
+        adapter = new MarketAdapter(new ArrayList<>(), coin -> {
+            Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
+            intent.putExtra("coin_id", coin.getId());
+            startActivity(intent);
+        });
+
+        rvCoins.setAdapter(adapter);
+
+        // 🎯 تعديل زرار البوتوم ناڤيجاشن (إضافة My Alerts)
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.nav_home) {
+                // صفحة الـ Home
+                fetchCoinsFromApi(); // أو أي دالة تريد تنفيذها
+                return true;
+            }
+            else if (id == R.id.nav_alerts) {
+                // فتح صفحة عرض التنبيهات
+                Intent intent = new Intent(MainActivity.this, AlertActivity.class);
+                startActivity(intent);
+                return true;
+            }
+            else if (id == R.id.nav_notify) {
+                // فتح Dialog لإضافة تنبيه
+                showAddAlertDialog();
+                return true;
+            }
+
+            return false;
+        });
+
+
+        PeriodicWorkRequest priceCheckRequest =
+                new PeriodicWorkRequest.Builder(PriceCheckWorker.class, 15, TimeUnit.MINUTES)
+                        .build();
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "price_check_work",
+                ExistingPeriodicWorkPolicy.KEEP,
+                priceCheckRequest
+        );
+
+        swipeRefresh.setOnRefreshListener(this::fetchCoinsFromApi);
+        setupSearch();
+
+        btnHot.setOnClickListener(v -> {
+            currentFilter = FilterType.HOT;
+            updateFilterButtons();
+            filterCoins(etSearchCoin.getText().toString());
+        });
+
+        btnGainers.setOnClickListener(v -> {
+            currentFilter = FilterType.GAINERS;
+            updateFilterButtons();
+            filterCoins(etSearchCoin.getText().toString());
+        });
+
+        btnLosers.setOnClickListener(v -> {
+            currentFilter = FilterType.LOSERS;
+            updateFilterButtons();
+            filterCoins(etSearchCoin.getText().toString());
+        });
+
+        updateFilterButtons();
+        fetchCoinsFromApi();
+    }
+
+    // 👇 إضافة سعر التنبيه (موجود سابقًا)
     private void showAddAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -74,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setView(layout);
 
-        builder.setPositiveButton("Add", null); // سنضبط الـ OnClick لاحقًا
+        builder.setPositiveButton("Add", null);
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
         AlertDialog dialog = builder.create();
@@ -101,81 +185,11 @@ public class MainActivity extends AppCompatActivity {
             alert.coinSymbol = coin;
             alert.targetPrice = price;
 
-            // تشغيل الإدخال في Thread منفصل لتجنب crash
             new Thread(() -> AppDatabase.getDatabase(MainActivity.this).priceAlertDao().insert(alert)).start();
 
             Toast.makeText(MainActivity.this, "Alert added", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        swipeRefresh = findViewById(R.id.swipeRefresh);
-        rvCoins = findViewById(R.id.rvCoins);
-        etSearchCoin = findViewById(R.id.etSearchCoin);
-
-        btnHot = findViewById(R.id.btnHot);
-        btnGainers = findViewById(R.id.btnGainers);
-        btnLosers = findViewById(R.id.btnLosers);
-
-        rvCoins.setLayoutManager(new LinearLayoutManager(this));
-
-        adapter = new MarketAdapter(new ArrayList<>(), coin -> {
-            Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
-            intent.putExtra("coin_id", coin.getId());
-            startActivity(intent);
-        });
-
-        rvCoins.setAdapter(adapter);
-
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
-        bottomNav.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.nav_notify) {
-                showAddAlertDialog();
-                return true;
-            }
-            return false;
-        });
-
-        PeriodicWorkRequest priceCheckRequest =
-                new PeriodicWorkRequest.Builder(PriceCheckWorker.class, 15, TimeUnit.MINUTES)
-                        .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "price_check_work",
-                ExistingPeriodicWorkPolicy.KEEP,
-                priceCheckRequest
-        );
-
-        swipeRefresh.setOnRefreshListener(this::fetchCoinsFromApi);
-
-        setupSearch();
-
-        btnHot.setOnClickListener(v -> {
-            currentFilter = FilterType.HOT;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
-
-        btnGainers.setOnClickListener(v -> {
-            currentFilter = FilterType.GAINERS;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
-
-        btnLosers.setOnClickListener(v -> {
-            currentFilter = FilterType.LOSERS;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
-
-        updateFilterButtons();
-
-        fetchCoinsFromApi();
     }
 
     private void updateFilterButtons() {
@@ -196,18 +210,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                filterCoins(s.toString());
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterCoins(s.toString()); }
+            @Override public void afterTextChanged(Editable s) {}
         });
 
         etSearchCoin.setOnEditorActionListener((v, actionId, event) -> {
@@ -231,15 +236,9 @@ public class MainActivity extends AppCompatActivity {
             if (!matchesSearch) continue;
 
             switch (currentFilter) {
-                case HOT:
-                    filteredList.add(coin);
-                    break;
-                case GAINERS:
-                    if (coin.getChangePercent24h() > 0) filteredList.add(coin);
-                    break;
-                case LOSERS:
-                    if (coin.getChangePercent24h() < 0) filteredList.add(coin);
-                    break;
+                case HOT:     filteredList.add(coin); break;
+                case GAINERS: if (coin.getChangePercent24h() > 0) filteredList.add(coin); break;
+                case LOSERS:  if (coin.getChangePercent24h() < 0) filteredList.add(coin); break;
             }
         }
 
@@ -272,17 +271,14 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful() && response.body() != null) {
                         for (CoinGeckoCoin c : response.body()) {
                             tempList.add(new Coin(
-                                    c.getId(),
-                                    c.getName(),
-                                    c.getSymbol(),
-                                    c.getCurrentPrice(),
-                                    c.getPriceChangePercentage24h()
+                                    c.getId(), c.getName(), c.getSymbol(),
+                                    c.getCurrentPrice(), c.getPriceChangePercentage24h()
                             ));
                         }
                     }
 
                     pagesFetched[0]++;
-                    if (pagesFetched[0] == totalPages) { // بعد اكتمال جميع الصفحات
+                    if (pagesFetched[0] == totalPages) {
                         allCoinsList.addAll(tempList);
                         filterCoins(etSearchCoin.getText().toString());
                         swipeRefresh.setRefreshing(false);

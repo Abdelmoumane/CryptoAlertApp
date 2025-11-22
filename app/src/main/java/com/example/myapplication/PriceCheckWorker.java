@@ -31,7 +31,7 @@ public class PriceCheckWorker extends Worker {
 
             if (currentPrice >= alert.targetPrice) {
                 sendNotification(alert.coinSymbol, alert.targetPrice);
-                db.priceAlertDao().deleteAlert(alert.id); // حذف التنبيه بعد الإشعار
+                db.priceAlertDao().deleteAlert(alert);   // ✔ يرسل الكائن كامل
             }
         }
 

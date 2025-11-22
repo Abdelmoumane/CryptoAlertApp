@@ -1,8 +1,10 @@
 package com.example.myapplication;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.Update;
 import java.util.List;
 
 @Dao
@@ -14,7 +16,9 @@ public interface PriceAlertDao {
     @Query("SELECT * FROM price_alerts")
     List<PriceAlert> getAllAlerts();
 
-    @Query("DELETE FROM price_alerts WHERE id = :id")
-    void deleteAlert(int id);
-}
+    @Delete
+    void deleteAlert(PriceAlert alert);  // ← الآن يقبل الكائن مباشرة
 
+    @Update
+    void updateAlert(PriceAlert alert);  // لتعديل التنبيه لاحقًا
+}

@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.app.AlertDialog;
+import android.content.Intent;   // 👈 مهم جدًا لفتح Activity جديد
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -54,35 +55,43 @@ public class CoinChartActivity extends AppCompatActivity {
             return;
         }
 
-        fetchHistoricalData(coinSymbol, 1); // افتراضياً 1 يوم
+        // تحميل البيانات الافتراضية (1 يوم)
+        fetchHistoricalData(coinSymbol, 1);
 
         btn1D.setOnClickListener(v -> fetchHistoricalData(coinSymbol, 1));
         btn7D.setOnClickListener(v -> fetchHistoricalData(coinSymbol, 7));
         btn30D.setOnClickListener(v -> fetchHistoricalData(coinSymbol, 30));
 
-        // إعداد التنقل السفلي
+        // ✔ إصلاح التنقل السفلي بالكامل 🔥
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+
             if (id == R.id.nav_home) {
-                finish(); // العودة إلى MainActivity
+                finish();  // 👈 يرجع لـ MainActivity
                 return true;
-            } else if (id == R.id.nav_notify) {
+            }
+            else if (id == R.id.nav_alerts) { // 👈 افتح صفحة My Alerts
+                Intent intent = new Intent(CoinChartActivity.this, AlertActivity.class);
+                startActivity(intent);
+                return true;
+            }
+            else if (id == R.id.nav_notify) { // 👈 فتح Dialog لإضافة تنبيه
                 showAlertDialog();
                 return true;
             }
+
             return false;
         });
     }
 
     private void showAlertDialog() {
-        // Inflate layout dialog_alert.xml
+        // Inflating dialog layout
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_alert, null);
         EditText etSymbol = dialogView.findViewById(R.id.etSymbol);
         EditText etTarget = dialogView.findViewById(R.id.etTarget);
         Button btnSave = dialogView.findViewById(R.id.btnSave);
 
-        // ملء رمز العملة تلقائياً
-        etSymbol.setText(coinSymbol.toUpperCase());
+        etSymbol.setText(coinSymbol.toUpperCase()); // ملء الرمز تلقائيًا
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setView(dialogView)
@@ -93,7 +102,7 @@ public class CoinChartActivity extends AppCompatActivity {
             String targetStr = etTarget.getText().toString().trim();
 
             if (symbol.isEmpty() || targetStr.isEmpty()) {
-                Toast.makeText(this, "Enter data", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please enter data", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -101,11 +110,10 @@ public class CoinChartActivity extends AppCompatActivity {
             try {
                 target = Double.parseDouble(targetStr);
             } catch (NumberFormatException e) {
-                Toast.makeText(this, "Invalid target price", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Invalid number", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // تنفيذ الإدخال على خيط خلفي لتسريع التطبيق
             Executors.newSingleThreadExecutor().execute(() -> {
                 AppDatabase db = AppDatabase.getDatabase(this);
                 PriceAlert alert = new PriceAlert();
@@ -113,7 +121,6 @@ public class CoinChartActivity extends AppCompatActivity {
                 alert.targetPrice = target;
                 db.priceAlertDao().insert(alert);
 
-                // العودة للـ Main Thread لإظهار Toast
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Alert saved", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
@@ -124,12 +131,13 @@ public class CoinChartActivity extends AppCompatActivity {
         dialog.show();
     }
 
-
     private void fetchHistoricalData(String coinId, int days) {
         CoinGeckoApi api = RetrofitClient.getInstance().create(CoinGeckoApi.class);
         api.getMarketChart(coinId, "usd", days).enqueue(new Callback<MarketChartResponse>() {
             @Override
-            public void onResponse(@NonNull Call<MarketChartResponse> call, @NonNull Response<MarketChartResponse> response) {
+            public void onResponse(@NonNull Call<MarketChartResponse> call,
+                                   @NonNull Response<MarketChartResponse> response) {
+
                 if (response.isSuccessful() && response.body() != null) {
                     List<List<Double>> prices = response.body().getPrices();
                     List<Entry> entries = new ArrayList<>();
@@ -140,21 +148,22 @@ public class CoinChartActivity extends AppCompatActivity {
                         entries.add(new Entry(x, y));
                     }
 
-                    LineDataSet dataSet = new LineDataSet(entries, coinId.toUpperCase() + " Price (USD)");
+                    LineDataSet dataSet = new LineDataSet(entries,
+                            coinId.toUpperCase() + " Price (USD)");
                     dataSet.setColor(getResources().getColor(R.color.purple_500));
                     dataSet.setValueTextColor(getResources().getColor(R.color.black));
 
                     LineData lineData = new LineData(dataSet);
                     lineChart.setData(lineData);
                     lineChart.invalidate();
-                } else {
-                    Toast.makeText(CoinChartActivity.this, "Failed to load chart data", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<MarketChartResponse> call, @NonNull Throwable t) {
-                Toast.makeText(CoinChartActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            public void onFailure(@NonNull Call<MarketChartResponse> call,
+                                  @NonNull Throwable t) {
+                Toast.makeText(CoinChartActivity.this,
+                        "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

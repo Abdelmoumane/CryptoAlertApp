@@ -8,5 +8,7 @@
     <color name="accent">#F4B400</color>
     <color name="purple_500">#673AB7</color>
     <color name="black">#000000</color>
+    <color name="teal_700">#018786</color>
+
 
 </resources>
