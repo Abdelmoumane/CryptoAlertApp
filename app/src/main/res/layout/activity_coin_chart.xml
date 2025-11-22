@@ -7,13 +7,43 @@
     android:padding="16dp"
     tools:context=".CoinChartActivity">
 
-    <!-- الرسم البياني -->
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/lineChart"
+    <!-- 📈 شارت + أزرار الزوم فوقه -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        tools:ignore="MissingClass" />
+        android:layout_weight="1">
+
+        <com.github.mikephil.charting.charts.CandleStickChart
+            android:id="@+id/candleChart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:ignore="MissingClass" />
+
+        <!-- زر التكبير -->
+        <ImageButton
+            android:id="@+id/btnZoomIn"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_zoom_in"
+            android:background="@drawable/bg_zoom_btn"
+            android:layout_gravity="top|end"
+            android:layout_margin="10dp"
+            android:contentDescription="Zoom In"/>
+
+        <!-- زر التصغير -->
+        <ImageButton
+            android:id="@+id/btnZoomOut"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:src="@drawable/ic_zoom_out"
+            android:background="@drawable/bg_zoom_btn"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="65dp"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="Zoom Out"/>
+
+    </FrameLayout>
+
 
     <!-- أزرار الفترة -->
     <LinearLayout
