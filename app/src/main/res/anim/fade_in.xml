@@ -1,0 +1,5 @@
+<!-- fade_in.xml -->
+<alpha xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="200"
+    android:fromAlpha="0.3"
+    android:toAlpha="1.0"/>
