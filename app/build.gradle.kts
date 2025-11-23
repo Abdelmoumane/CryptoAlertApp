@@ -36,6 +36,9 @@ dependencies {
     // Charts
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
+
+
+
     // Material
     implementation("com.google.android.material:material:1.12.0")
 
@@ -68,6 +71,8 @@ dependencies {
 
     // WorkManager
     implementation(libs.work.runtime)
+
+
 
     // Testing
     testImplementation(libs.junit)

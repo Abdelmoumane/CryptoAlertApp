@@ -14,13 +14,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder> {
 
     private ArrayList<Coin> coins;
-    private ArrayList<Coin> coinsFull; // نسخة كاملة للبحث
-    private Context context;  // هنا خزّن الكونتكست
+    private ArrayList<Coin> coinsFull;
+    private Context context;
 
-    // عدل الكونستركتور عشان ياخذ context كمان
     public CoinAdapter(Context context, ArrayList<Coin> coins) {
         this.context = context;
         this.coins = coins;
@@ -39,21 +39,23 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
     public void onBindViewHolder(@NonNull CoinViewHolder holder, int position) {
         Coin coin = coins.get(position);
 
-        holder.tvSymbol.setText(coin.getName() + " (" + coin.getSymbol().toUpperCase() + ")");
+        // **نستخدم فقط رمز العملة بدون الاسم**
+        holder.tvSymbol.setText(coin.getSymbol().toUpperCase());
+
+        // **السعر**
         holder.tvPrice.setText(String.format(Locale.US, "$%,.2f", coin.getPrice()));
 
+        // **التغيير**
         double change = coin.getChangePercent24h();
         holder.tvChange.setText(String.format(Locale.US, "%+.2f%%", change));
-        if (change >= 0) {
-            holder.tvChange.setTextColor(Color.parseColor("#388E3C")); // أخضر
-        } else {
-            holder.tvChange.setTextColor(Color.parseColor("#D32F2F")); // أحمر
-        }
+        holder.tvChange.setTextColor(
+                change >= 0 ? Color.parseColor("#19A100") : Color.parseColor("#E60000")
+        );
 
-        // هنا استخدم الكونتكست اللي خزّنته
+        // **عند الضغط → افتح الرسم البياني**
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, CoinChartActivity.class);
-            intent.putExtra("coin_id", coin.getSymbol());
+            intent.putExtra("coin_id", coin.getId());  // نرسل الـ ID صح 📌
             context.startActivity(intent);
         });
     }
@@ -78,8 +80,7 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
         } else {
             text = text.toLowerCase();
             for (Coin c : coinsFull) {
-                if (c.getSymbol().toLowerCase().contains(text) ||
-                        c.getName().toLowerCase().contains(text)) {
+                if (c.getSymbol().toLowerCase().contains(text)) {   // فقط symbol
                     coins.add(c);
                 }
             }
@@ -92,8 +93,8 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
 
         public CoinViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvSymbol = itemView.findViewById(R.id.tvSymbol);
-            tvPrice = itemView.findViewById(R.id.tvPrice);
+            tvSymbol = itemView.findViewById(R.id.tvSymbol);   // فقط Symbol 🔥
+            tvPrice  = itemView.findViewById(R.id.tvPrice);
             tvChange = itemView.findViewById(R.id.tvChange);
         }
     }

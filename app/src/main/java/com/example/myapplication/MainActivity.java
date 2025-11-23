@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -46,17 +47,17 @@ public class MainActivity extends AppCompatActivity {
     private FilterType currentFilter = FilterType.HOT;
 
     private final Handler handler = new Handler();
-    private final Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            fetchCoinsFromApi();
-            handler.postDelayed(this, 30000); // كل 30 ثانية
-        }
+    private final Runnable runnable = () -> {
+        fetchCoinsFromApi();
+        handler.postDelayed(this.runnable, 30000); // كل 30 ثانية
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+
         setContentView(R.layout.activity_main);
 
         swipeRefresh = findViewById(R.id.swipeRefresh);
@@ -71,38 +72,31 @@ public class MainActivity extends AppCompatActivity {
 
         adapter = new MarketAdapter(new ArrayList<>(), coin -> {
             Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
-            intent.putExtra("coin_id", coin.getId());
+            intent.putExtra("coin_id", coin.getId()); // 👈 فقط id الآن
             startActivity(intent);
         });
 
         rvCoins.setAdapter(adapter);
 
-        // 🎯 تعديل زرار البوتوم ناڤيجاشن (إضافة My Alerts)
+        // 📌 Bottom Navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
             if (id == R.id.nav_home) {
-                // صفحة الـ Home
-                fetchCoinsFromApi(); // أو أي دالة تريد تنفيذها
+                fetchCoinsFromApi();
                 return true;
-            }
-            else if (id == R.id.nav_alerts) {
-                // فتح صفحة عرض التنبيهات
-                Intent intent = new Intent(MainActivity.this, AlertActivity.class);
-                startActivity(intent);
+            } else if (id == R.id.nav_alerts) {
+                startActivity(new Intent(MainActivity.this, AlertActivity.class));
                 return true;
-            }
-            else if (id == R.id.nav_notify) {
-                // فتح Dialog لإضافة تنبيه
+            } else if (id == R.id.nav_notify) {
                 showAddAlertDialog();
                 return true;
             }
-
             return false;
         });
 
-
+        // 🔄 تشغيل Worker
         PeriodicWorkRequest priceCheckRequest =
                 new PeriodicWorkRequest.Builder(PriceCheckWorker.class, 15, TimeUnit.MINUTES)
                         .build();
@@ -116,29 +110,14 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setOnRefreshListener(this::fetchCoinsFromApi);
         setupSearch();
 
-        btnHot.setOnClickListener(v -> {
-            currentFilter = FilterType.HOT;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
-
-        btnGainers.setOnClickListener(v -> {
-            currentFilter = FilterType.GAINERS;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
-
-        btnLosers.setOnClickListener(v -> {
-            currentFilter = FilterType.LOSERS;
-            updateFilterButtons();
-            filterCoins(etSearchCoin.getText().toString());
-        });
+        btnHot.setOnClickListener(v -> { currentFilter = FilterType.HOT; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
+        btnGainers.setOnClickListener(v -> { currentFilter = FilterType.GAINERS; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
+        btnLosers.setOnClickListener(v -> { currentFilter = FilterType.LOSERS; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
 
         updateFilterButtons();
         fetchCoinsFromApi();
     }
 
-    // 👇 إضافة سعر التنبيه (موجود سابقًا)
     private void showAddAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -230,8 +209,7 @@ public class MainActivity extends AppCompatActivity {
         String lowerQuery = (query == null) ? "" : query.toLowerCase();
 
         for (Coin coin : allCoinsList) {
-            boolean matchesSearch = coin.getName().toLowerCase().contains(lowerQuery) ||
-                    coin.getSymbol().toLowerCase().contains(lowerQuery);
+            boolean matchesSearch = coin.getSymbol().toLowerCase().contains(lowerQuery);
 
             if (!matchesSearch) continue;
 
@@ -271,8 +249,10 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful() && response.body() != null) {
                         for (CoinGeckoCoin c : response.body()) {
                             tempList.add(new Coin(
-                                    c.getId(), c.getName(), c.getSymbol(),
-                                    c.getCurrentPrice(), c.getPriceChangePercentage24h()
+                                    c.getId(),
+                                    c.getSymbol(),
+                                    c.getCurrentPrice(),
+                                    c.getPriceChangePercentage24h()
                             ));
                         }
                     }

@@ -33,4 +33,10 @@ public interface CoinGeckoApi {
             @Query("vs_currency") String vsCurrency,
             @Query("days") int days   // 1 , 7 , 30 , 90 , 180 , 365
     );
+    @GET("coins/markets")
+    Call<List<CoinGeckoCoin>> getSingleCoin(
+            @Query("ids") String coinId,
+            @Query("vs_currency") String vsCurrency
+    );
+
 }

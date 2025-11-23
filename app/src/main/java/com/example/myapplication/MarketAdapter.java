@@ -54,14 +54,12 @@ public class MarketAdapter extends RecyclerView.Adapter<MarketAdapter.CoinViewHo
 
         public CoinViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvName = itemView.findViewById(R.id.tvCoinName);
             tvSymbol = itemView.findViewById(R.id.tvCoinSymbol);
             tvPrice = itemView.findViewById(R.id.tvCoinPrice);
             tvChange = itemView.findViewById(R.id.tvCoinChange);
         }
 
         void bind(final Coin coin, final OnCoinClickListener listener) {
-            tvName.setText(coin.getName());
             tvSymbol.setText(coin.getSymbol().toUpperCase());
             tvPrice.setText(String.format("$%.2f", coin.getPrice()));
 

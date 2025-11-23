@@ -44,6 +44,8 @@ public class CoinChartActivity extends AppCompatActivity {
     private String coinSymbol;
     private BottomNavigationView bottomNavigationView;
     private ImageButton btnZoomIn, btnZoomOut;
+    private List<Long> timestamps = new ArrayList<>();
+
 
 
     @Override
@@ -123,6 +125,7 @@ public class CoinChartActivity extends AppCompatActivity {
     }
 
     private void fetchOHLCData(String coinId, int days) {
+
         CoinGeckoApi api = RetrofitClient.getInstance().create(CoinGeckoApi.class);
         api.getOHLC(coinId, "usd", days).enqueue(new Callback<List<List<Double>>>() {
             @Override
@@ -131,20 +134,43 @@ public class CoinChartActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
 
                     List<CandleEntry> candleEntries = new ArrayList<>();
-                    List<Long> timestamps = new ArrayList<>();
+                    timestamps.clear();   // 👈 مهم جدًا
 
                     for (int i = 0; i < response.body().size(); i++) {
                         List<Double> data = response.body().get(i);
 
-                        timestamps.add(data.get(0).longValue());
+                        timestamps.add(data.get(0).longValue());  // حفظ التاريخ الحقيقي
 
                         candleEntries.add(new CandleEntry(
-                                i, data.get(2).floatValue(), data.get(3).floatValue(),
-                                data.get(1).floatValue(), data.get(4).floatValue()
+                                i,
+                                data.get(2).floatValue(),  // High
+                                data.get(3).floatValue(),  // Low
+                                data.get(1).floatValue(),  // Open
+                                data.get(4).floatValue()   // Close
                         ));
                     }
 
-                    candleChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter() {
+                    // 🔥 تجهيز الداتا
+                    CandleDataSet dataSet = new CandleDataSet(candleEntries, coinId.toUpperCase() + " / USD");
+                    dataSet.setDecreasingColor(Color.RED);
+                    dataSet.setIncreasingColor(Color.GREEN);
+                    dataSet.setShadowColor(Color.WHITE);
+                    dataSet.setNeutralColor(Color.GRAY);
+                    dataSet.setDrawValues(false);
+
+                    candleChart.setData(new CandleData(dataSet));
+
+                    // 📌 تفعيل MarkerView
+                    CustomMarkerView marker = new CustomMarkerView(
+                            CoinChartActivity.this,
+                            R.layout.marker_view,
+                            timestamps   // ← مهم جدًا!
+                    );
+                    candleChart.setMarker(marker);
+
+                    // 📅 حل مشكلة التاريخ في XAxis
+                    XAxis xAxis = candleChart.getXAxis();
+                    xAxis.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
                         @Override
                         public String getFormattedValue(float value) {
                             int index = (int) value;
@@ -156,17 +182,8 @@ public class CoinChartActivity extends AppCompatActivity {
                         }
                     });
 
-                    CandleDataSet dataSet = new CandleDataSet(candleEntries,
-                            coinId.toUpperCase() + " / USD");
-                    dataSet.setDecreasingColor(Color.RED);
-                    dataSet.setIncreasingColor(Color.GREEN);
-                    dataSet.setShadowColor(Color.WHITE);
-                    dataSet.setNeutralColor(Color.GRAY);
-                    dataSet.setDrawValues(false);
-
-                    candleChart.setData(new CandleData(dataSet));
+                    // تحديث الشارت
                     candleChart.invalidate();
-
                     candleChart.setVisibleXRangeMinimum(5);
                     candleChart.setVisibleXRangeMaximum(60);
                     candleChart.moveViewToX(candleEntries.size());
@@ -180,6 +197,8 @@ public class CoinChartActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     private void showAlertDialog() {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_alert, null);
