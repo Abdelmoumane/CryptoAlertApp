@@ -32,7 +32,11 @@
         android:id="@+id/bottom_navigation_alerts"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?android:attr/windowBackground"
+
+        android:background="#141414"
+        app:itemIconTint="@color/white"
+        app:itemTextColor="@color/white"
+
         app:menu="@menu/bottom_nav_menu" />
 
 </LinearLayout>
