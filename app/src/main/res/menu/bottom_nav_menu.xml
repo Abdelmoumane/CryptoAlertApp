@@ -17,4 +17,10 @@
         android:icon="@drawable/ic_notifications"
         android:title="Notify" />
 
+    <item
+        android:id="@+id/nav_whale_alerts"
+        android:icon="@drawable/ic_whale"
+    android:title="Whale Alerts" />
+
+
 </menu>

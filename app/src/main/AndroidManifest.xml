@@ -36,5 +36,8 @@
             android:name=".AlertActivity"
             android:exported="false" />
 
+        <activity android:name=".WhaleAlertsActivity" />
+
+
     </application>
 </manifest>

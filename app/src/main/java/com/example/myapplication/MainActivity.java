@@ -93,6 +93,12 @@ public class MainActivity extends AppCompatActivity {
                 showAddAlertDialog();
                 return true;
             }
+            //new whale alerts
+            else if (id == R.id.nav_whale_alerts) {
+                startActivity(new Intent(MainActivity.this, WhaleAlertsActivity.class));
+                return true;
+            }
+
             return false;
         });
 
