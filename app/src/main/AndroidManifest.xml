@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>   <!-- 👍 مرة واحدة تكفي -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
 
     <application
         android:allowBackup="true"
@@ -19,20 +20,11 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">
 
-        <!-- 📡 ❗ PriceAlertReceiver = فقط لفحص السعر -->
-        <receiver
-            android:name=".PriceAlertReceiver"
-            android:exported="false" />
 
-        <!-- 💡 BootReceiver (تشغيل Worker بعد إعادة تشغيل الهاتف) -->
-        <receiver
-            android:name=".PriceAlertBootReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
+
+
+
+
 
         <!-- 🏠 MainActivity -->
         <activity
@@ -45,18 +37,14 @@
         </activity>
 
         <!-- 📈 Chart -->
-        <activity
-            android:name=".CoinChartActivity"
-            android:exported="false"/>
+        <activity android:name=".CoinChartActivity" android:exported="false" />
 
         <!-- 📢 My Alerts -->
-        <activity
-            android:name=".AlertActivity"
-            android:exported="false"/>
+        <activity android:name=".AlertActivity" android:exported="false" />
 
         <!-- 🐋 Whale Alerts -->
-        <activity
-            android:name=".WhaleAlertsActivity"/>
+        <activity android:name=".WhaleAlertsActivity" />
+
     </application>
 
 </manifest>
