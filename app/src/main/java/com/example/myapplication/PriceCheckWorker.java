@@ -7,10 +7,16 @@ import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.google.gson.Gson;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import retrofit2.Call;
@@ -24,6 +30,14 @@ public class PriceCheckWorker extends Worker {
         super(context, workerParams);
     }
 
+    // 🟢 استدعاء الـ Worker من أي مكان (حتى من Receiver)
+    public static void enqueueWork(Context context) {
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
+                .build();
+
+        WorkManager.getInstance(context).enqueue(request);
+    }
+
     @NonNull
     @Override
     public Result doWork() {
@@ -32,42 +46,21 @@ public class PriceCheckWorker extends Worker {
 
         for (PriceAlert alert : alerts) {
 
+            // 🟣 السعر الآن من JSON فقط (Offline Mode)
+            double currentPrice = getPriceFromLocalData(alert.coinSymbol);
 
-
-            double currentPrice = fetchPriceFromAPI(alert.coinSymbol);
-
-            if (currentPrice == -1) continue;  // لو فشل الـ API
+            if (currentPrice == -1) continue;
 
             if (currentPrice >= alert.targetPrice) {
                 sendNotification(alert.coinSymbol, currentPrice);
-                db.priceAlertDao().deleteAlert(alert);  // ⚠ حذف بعد الإشعار
+                db.priceAlertDao().deleteAlert(alert);  // حذف بعد الإشعار
             }
         }
 
         return Result.success();
     }
 
-    /**
-     * 🟢 جلب السعر الحقيقي من CoinGecko API
-     */
-    private double fetchPriceFromAPI(String coinSymbol) {
-        CoinGeckoApi api = ApiClient.getClient().create(CoinGeckoApi.class);
-        Call<List<CoinGeckoCoin>> call = api.getSingleCoin(coinSymbol, "usd");
 
-        try {
-            Response<List<CoinGeckoCoin>> response = call.execute();  // 🔥 Sync (مسموح داخل Worker)
-            if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
-                return response.body().get(0).getCurrentPrice();  // السعر الحقيقي
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return -1;  // فشل API
-    }
-
-    /**
-     * 🔔 إرسال الإشعار
-     */
     private void sendNotification(String coin, double price) {
         NotificationManager notificationManager =
                 (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
@@ -87,4 +80,27 @@ public class PriceCheckWorker extends Worker {
 
         notificationManager.notify((int) System.currentTimeMillis(), builder.build());
     }
+
+    // 🟣 جلب السعر من JSON فقط (بدون إنترنت)
+    private double getPriceFromLocalData(String coinSymbol) {
+        try {
+            InputStream is = getApplicationContext().getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            for (Coin coin : response.coins) {
+                if (coin.getId().equalsIgnoreCase(coinSymbol)) {
+                    return coin.getPrice();   // ← السعر الحالي من JSON فقط!!!!
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;  // لو فشل
+    }
+
 }

@@ -2,10 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 🔐 Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>   <!-- 👍 مرة واحدة تكفي -->
 
     <application
         android:allowBackup="true"
@@ -18,28 +19,44 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">
 
-        <!-- MainActivity -->
+        <!-- 📡 ❗ PriceAlertReceiver = فقط لفحص السعر -->
+        <receiver
+            android:name=".PriceAlertReceiver"
+            android:exported="false" />
+
+        <!-- 💡 BootReceiver (تشغيل Worker بعد إعادة تشغيل الهاتف) -->
+        <receiver
+            android:name=".PriceAlertBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- 🏠 MainActivity -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- CoinChartActivity -->
+        <!-- 📈 Chart -->
         <activity
             android:name=".CoinChartActivity"
-            android:exported="false" />
+            android:exported="false"/>
 
-        <!-- AlertActivity (أضفها هنا) -->
+        <!-- 📢 My Alerts -->
         <activity
             android:name=".AlertActivity"
-            android:exported="false" />
+            android:exported="false"/>
 
-        <activity android:name=".WhaleAlertsActivity" />
-
-
+        <!-- 🐋 Whale Alerts -->
+        <activity
+            android:name=".WhaleAlertsActivity"/>
     </application>
+
 </manifest>

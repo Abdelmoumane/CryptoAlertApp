@@ -205,6 +205,13 @@ public class CoinChartActivity extends AppCompatActivity {
 
     // 🎨 تنسيق الشارت
     private void setupChartStyle() {
+
+        // 📌 Marker View (عرض معلومات الشمعة عند اللمس)
+        CustomMarkerView markerView = new CustomMarkerView(this, R.layout.marker_view, timestamps);
+        candleChart.setMarker(markerView);
+
+
+
         candleChart.setBackgroundColor(Color.BLACK);
         candleChart.getDescription().setEnabled(false);
         candleChart.setPinchZoom(true);

@@ -1,20 +1,27 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.content.Intent;
-import android.widget.TextView;
-
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.gson.Gson;
@@ -23,6 +30,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -32,15 +40,28 @@ public class MainActivity extends AppCompatActivity {
     private EditText etSearchCoin;
     private SwipeRefreshLayout swipeRefresh;
 
-    // 🔥 Tabs (Hot / Gainers / Losers)
     private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+
+        super.onCreate(savedInstanceState);   // 🔥 لازم أول شيء
+
         setContentView(R.layout.activity_main);
 
+        // 🛡 طلب صلاحية الإشعارات (مرّة واحدة فقط)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+            }
+        }
+
+        // 🚀 شغل Worker كل 10 ثواني (فقط للتجريب)
+        testWorker();
+
+        // 🔗 ربط العناصر
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
         swipeRefresh = findViewById(R.id.swipeRefresh);
@@ -55,25 +76,90 @@ public class MainActivity extends AppCompatActivity {
 
         setupBottomNavigation();
         setupSearch();
-        setupTabs();   // 👈 مهم جداً
-
-        loadLocalCoins();  // تحميل بدون إنترنت فقط
+        setupTabs();
+        loadLocalCoins();
     }
+
+    // 🟢 تكرار الـ Worker كل 10 ثواني (للتجريب فقط)
+    private void testWorker() {
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
+                .setInitialDelay(10, TimeUnit.SECONDS)
+                .build();
+
+        WorkManager.getInstance(this).enqueue(request);
+
+        WorkManager.getInstance(this).getWorkInfoByIdLiveData(request.getId())
+                .observe(this, workInfo -> {
+                    if (workInfo != null && workInfo.getState().isFinished()) {
+                        testWorker();  // 🔁 Loop
+                    }
+                });
+    }
+
+
+    // ⬇ باقي الكلاسات كما هي ⬇
+
 
     // 📌 Bottom Navigation
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.nav_alerts) {
+
+            int id = item.getItemId();
+
+            if (id == R.id.nav_alerts) {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
-            } else if (item.getItemId() == R.id.nav_whale_alerts) {
+            }
+            else if (id == R.id.nav_notify) {  // 👈 المشكلة كانت هنا
+                showAlertDialog();             // 🟢 تشغيل زر Notify
+                return true;
+            }
+            else if (id == R.id.nav_whale_alerts) {
                 startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
             }
             return true;
         });
     }
+    // 📌 إضافة تنبيه من MainActivity
+    private void showAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add Price Alert");
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_alert, null);
+        EditText etSymbol = dialogView.findViewById(R.id.etSymbol);
+        EditText etTarget = dialogView.findViewById(R.id.etTarget);
+        Button btnSave = dialogView.findViewById(R.id.btnSave);
+
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        btnSave.setOnClickListener(v -> {
+            String symbol = etSymbol.getText().toString().trim().toUpperCase();
+            String target = etTarget.getText().toString().trim();
+
+            if (symbol.isEmpty() || target.isEmpty()) {
+                Toast.makeText(this, "Enter all data!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            PriceAlert alert = new PriceAlert();
+            alert.coinSymbol = symbol;
+            alert.targetPrice = Double.parseDouble(target);
+
+            new Thread(() -> {
+                AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Alert saved!", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
+            }).start();
+        });
+
+        dialog.show();
+    }
+
 
     // 🔍 Search Filter
     private void setupSearch() {
