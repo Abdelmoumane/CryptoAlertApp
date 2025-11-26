@@ -7,7 +7,19 @@
     android:padding="16dp"
     tools:context=".CoinChartActivity">
 
-    <!-- 📈 شارت + أزرار الزوم فوقه -->
+    <!-- 🪙 اسم العملة (فوق الشارت دائمًا) -->
+    <TextView
+        android:id="@+id/tvCoinName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="BITCOIN / USD"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="10dp"/>
+
+    <!-- 📈 الشارت + أزرار الزوم داخل FrameLayout -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -19,33 +31,31 @@
             android:layout_height="match_parent"
             tools:ignore="MissingClass" />
 
-        <!-- زر التكبير -->
         <ImageButton
             android:id="@+id/btnZoomIn"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_zoom_in"
-            android:background="@drawable/bg_zoom_btn"
+            android:background="@android:color/transparent"
             android:layout_gravity="top|end"
             android:layout_margin="10dp"
-            android:contentDescription="Zoom In"/>
+            />
 
-        <!-- زر التصغير -->
         <ImageButton
             android:id="@+id/btnZoomOut"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_zoom_out"
-            android:background="@drawable/bg_zoom_btn"
-            android:layout_gravity="top|end"
-            android:layout_marginTop="65dp"
+            android:background="@android:color/transparent"
             android:layout_marginEnd="10dp"
-            android:contentDescription="Zoom Out"/>
+            android:layout_marginTop="60dp"
+            android:layout_gravity="top|end"
+            />
+
 
     </FrameLayout>
 
-
-    <!-- أزرار الفترة -->
+    <!-- 📆 أزرار الفترات -->
     <LinearLayout
         android:id="@+id/periodButtonsLayout"
         android:layout_width="match_parent"
@@ -61,31 +71,42 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="1D"
-            android:layout_margin="4dp"/>
+            android:textSize="16sp"
+            android:textColor="#222222"
+            android:background="@android:color/transparent"
+            />
 
         <Button
             android:id="@+id/btn7D"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="1W"
-            android:layout_margin="4dp"/>
+            android:textSize="16sp"
+            android:textColor="#222222"
+            android:background="@android:color/transparent"
+            />
 
         <Button
             android:id="@+id/btn30D"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="1M"
-            android:layout_margin="4dp"/>
+            android:textSize="16sp"
+            android:textColor="#222222"
+            android:background="@android:color/transparent"
+            />
+
+
+
     </LinearLayout>
 
-    <!-- شريط التنقل السفلي -->
+    <!-- 🔽 Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?android:attr/windowBackground"
         app:menu="@menu/bottom_nav_menu"
-        app:labelVisibilityMode="labeled"
-        />
+        app:labelVisibilityMode="labeled"/>
 
 </LinearLayout>

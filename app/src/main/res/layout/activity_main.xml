@@ -143,8 +143,8 @@
         android:background="#141414"
         app:labelVisibilityMode="labeled"
 
-        app:itemIconTint="@color/white"
-    app:itemTextColor="@color/white"
+        app:itemIconTint="@color/bottom_nav_icon"
+    app:itemTextColor="@color/bottom_nav_icon"
     app:menu="@menu/bottom_nav_menu" />
 
 </LinearLayout>

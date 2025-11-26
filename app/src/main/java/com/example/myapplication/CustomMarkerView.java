@@ -8,48 +8,37 @@ import com.github.mikephil.charting.data.CandleEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.utils.MPPointF;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import com.example.myapplication.R;
 
 public class CustomMarkerView extends MarkerView {
 
-    private final TextView tvContent;
-    private final List<Long> timestamps;  // 👈 استقبلنا التواريخ من النشاط
+    private TextView tvInfo;
 
-    public CustomMarkerView(Context context, int layoutResource, List<Long> timestamps) {
+    public CustomMarkerView(Context context, int layoutResource) {
         super(context, layoutResource);
-        this.tvContent = findViewById(R.id.tvContent);
-        this.timestamps = timestamps;  // ✔ حفظها
+        tvInfo = findViewById(R.id.tvInfo);
     }
 
     @Override
     public void refreshContent(Entry e, Highlight highlight) {
-        if (e instanceof CandleEntry) {
-            CandleEntry ce = (CandleEntry) e;
+        CandleEntry ce = (CandleEntry) e;
 
-            // 👈 ce.getX() = INDEX فقط
-            int index = (int) ce.getX();
-            long timestamp = timestamps.get(index);  // ✔ الآن timestamp الحقيقي!
+        String txt = "🕑 Date: " + getFormattedTime((int) ce.getX()) + "\n" +
+                "📈 Open: " + ce.getOpen() + "\n" +
+                "⬆ High: " + ce.getHigh() + "\n" +
+                "⬇ Low: " + ce.getLow() + "\n" +
+                "📉 Close: " + ce.getClose();
 
-            String date = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-                    .format(new Date(timestamp));
-
-            tvContent.setText(
-                    "Open: " + ce.getOpen() +
-                            "\nHigh: " + ce.getHigh() +
-                            "\nLow: " + ce.getLow() +
-                            "\nClose: " + ce.getClose() +
-                            "\nDate: " + date
-            );
-        }
+        tvInfo.setText(txt);
         super.refreshContent(e, highlight);
     }
 
     @Override
     public MPPointF getOffset() {
-        return new MPPointF(-(getWidth() / 2f), -getHeight());
+        return new MPPointF(-(getWidth() / 2), -getHeight());
+    }
+
+    private String getFormattedTime(int index) {
+        return "Candle #" + index; // سنعدلها لاحقاً بالتاريخ الحقيقي
     }
 }

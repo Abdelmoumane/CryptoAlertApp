@@ -1,37 +1,28 @@
 package com.example.myapplication;
 
 import android.content.Intent;
+import android.widget.TextView;
+
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.gson.Gson;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,165 +32,56 @@ public class MainActivity extends AppCompatActivity {
     private EditText etSearchCoin;
     private SwipeRefreshLayout swipeRefresh;
 
-    private TextView btnHot, btnGainers, btnLosers;
-
-    private enum FilterType {HOT, GAINERS, LOSERS}
+    // 🔥 Tabs (Hot / Gainers / Losers)
+    private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
-
-    private final Handler handler = new Handler();
-    private final Runnable runnable = () -> {
-        fetchCoinsFromApi();
-        handler.postDelayed(this.runnable, 30000); // كل 30 ثانية
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
-
         setContentView(R.layout.activity_main);
 
-        swipeRefresh = findViewById(R.id.swipeRefresh);
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
-
-        btnHot = findViewById(R.id.btnHot);
-        btnGainers = findViewById(R.id.btnGainers);
-        btnLosers = findViewById(R.id.btnLosers);
+        swipeRefresh = findViewById(R.id.swipeRefresh);
 
         rvCoins.setLayoutManager(new LinearLayoutManager(this));
-
         adapter = new MarketAdapter(new ArrayList<>(), coin -> {
             Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
-            intent.putExtra("coin_id", coin.getId()); // 👈 فقط id الآن
+            intent.putExtra("coin_id", coin.getId());
             startActivity(intent);
         });
-
         rvCoins.setAdapter(adapter);
 
-        // 📌 Bottom Navigation
+        setupBottomNavigation();
+        setupSearch();
+        setupTabs();   // 👈 مهم جداً
+
+        loadLocalCoins();  // تحميل بدون إنترنت فقط
+    }
+
+    // 📌 Bottom Navigation
+    private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.nav_home) {
-                fetchCoinsFromApi();
+            if (item.getItemId() == R.id.nav_alerts) {
+                startActivity(new Intent(this, AlertActivity.class));
                 return true;
-            } else if (id == R.id.nav_alerts) {
-                startActivity(new Intent(MainActivity.this, AlertActivity.class));
-                return true;
-            } else if (id == R.id.nav_notify) {
-                showAddAlertDialog();
+            } else if (item.getItemId() == R.id.nav_whale_alerts) {
+                startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
             }
-            //new whale alerts
-            else if (id == R.id.nav_whale_alerts) {
-                startActivity(new Intent(MainActivity.this, WhaleAlertsActivity.class));
-                return true;
-            }
-
-            return false;
-        });
-
-        // 🔄 تشغيل Worker
-        PeriodicWorkRequest priceCheckRequest =
-                new PeriodicWorkRequest.Builder(PriceCheckWorker.class, 15, TimeUnit.MINUTES)
-                        .build();
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "price_check_work",
-                ExistingPeriodicWorkPolicy.KEEP,
-                priceCheckRequest
-        );
-
-        swipeRefresh.setOnRefreshListener(this::fetchCoinsFromApi);
-        setupSearch();
-
-        btnHot.setOnClickListener(v -> { currentFilter = FilterType.HOT; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
-        btnGainers.setOnClickListener(v -> { currentFilter = FilterType.GAINERS; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
-        btnLosers.setOnClickListener(v -> { currentFilter = FilterType.LOSERS; updateFilterButtons(); filterCoins(etSearchCoin.getText().toString()); });
-
-        updateFilterButtons();
-        fetchCoinsFromApi();
-    }
-
-    private void showAddAlertDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Add Price Alert");
-
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 40, 50, 10);
-
-        EditText etCoin = new EditText(this);
-        etCoin.setHint("Coin Symbol (e.g., BTC)");
-        layout.addView(etCoin);
-
-        EditText etPrice = new EditText(this);
-        etPrice.setHint("Target Price");
-        etPrice.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        layout.addView(etPrice);
-
-        builder.setView(layout);
-
-        builder.setPositiveButton("Add", null);
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String coin = etCoin.getText().toString().trim().toUpperCase();
-            String priceStr = etPrice.getText().toString().trim();
-
-            if (coin.isEmpty() || priceStr.isEmpty()) {
-                Toast.makeText(MainActivity.this, "Please enter coin and target price", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            double price;
-            try {
-                price = Double.parseDouble(priceStr);
-            } catch (NumberFormatException e) {
-                Toast.makeText(MainActivity.this, "Invalid price format", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = coin;
-            alert.targetPrice = price;
-
-            new Thread(() -> AppDatabase.getDatabase(MainActivity.this).priceAlertDao().insert(alert)).start();
-
-            Toast.makeText(MainActivity.this, "Alert added", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            return true;
         });
     }
 
-    private void updateFilterButtons() {
-        int activeBgColor = 0xFF000000;
-        int activeTextColor = 0xFFFFFFFF;
-        int inactiveTextColor = 0xFF9E9E9E;
-        int transparent = 0x00000000;
-
-        btnHot.setBackgroundColor(currentFilter == FilterType.HOT ? activeBgColor : transparent);
-        btnHot.setTextColor(currentFilter == FilterType.HOT ? activeTextColor : inactiveTextColor);
-
-        btnGainers.setBackgroundColor(currentFilter == FilterType.GAINERS ? activeBgColor : transparent);
-        btnGainers.setTextColor(currentFilter == FilterType.GAINERS ? activeTextColor : inactiveTextColor);
-
-        btnLosers.setBackgroundColor(currentFilter == FilterType.LOSERS ? activeBgColor : transparent);
-        btnLosers.setTextColor(currentFilter == FilterType.LOSERS ? activeTextColor : inactiveTextColor);
-    }
-
+    // 🔍 Search Filter
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterCoins(s.toString()); }
             @Override public void afterTextChanged(Editable s) {}
         });
-
         etSearchCoin.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH ||
                     (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
@@ -210,78 +92,87 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void filterCoins(String query) {
-        List<Coin> filteredList = new ArrayList<>();
-        String lowerQuery = (query == null) ? "" : query.toLowerCase();
-
-        for (Coin coin : allCoinsList) {
-            boolean matchesSearch = coin.getSymbol().toLowerCase().contains(lowerQuery);
-
-            if (!matchesSearch) continue;
-
-            switch (currentFilter) {
-                case HOT:     filteredList.add(coin); break;
-                case GAINERS: if (coin.getChangePercent24h() > 0) filteredList.add(coin); break;
-                case LOSERS:  if (coin.getChangePercent24h() < 0) filteredList.add(coin); break;
-            }
-        }
-
-        if (currentFilter == FilterType.GAINERS) {
-            filteredList.sort((c1, c2) -> Double.compare(c2.getChangePercent24h(), c1.getChangePercent24h()));
-        } else if (currentFilter == FilterType.LOSERS) {
-            filteredList.sort((c1, c2) -> Double.compare(c1.getChangePercent24h(), c2.getChangePercent24h()));
-        }
-
-        adapter.updateData(filteredList);
+    // 🧠 Tabs System
+    private void setupTabs() {
+        findViewById(R.id.btnHot).setOnClickListener(v -> {
+            currentFilter = FilterType.HOT;
+            updateTabUI();
+            filterCoins(etSearchCoin.getText().toString());
+        });
+        findViewById(R.id.btnGainers).setOnClickListener(v -> {
+            currentFilter = FilterType.GAINERS;
+            updateTabUI();
+            filterCoins(etSearchCoin.getText().toString());
+        });
+        findViewById(R.id.btnLosers).setOnClickListener(v -> {
+            currentFilter = FilterType.LOSERS;
+            updateTabUI();
+            filterCoins(etSearchCoin.getText().toString());
+        });
     }
 
-    private void fetchCoinsFromApi() {
-        allCoinsList.clear();
-        swipeRefresh.setRefreshing(true);
+    // 🎨 UI Update for Tabs
+    private void updateTabUI() {
+        int activeColor = 0xFFFFFFFF;
+        int inactiveColor = 0xFF888888;
 
-        int totalPages = 3;
-        final int[] pagesFetched = {0};
-        List<Coin> tempList = new ArrayList<>();
+        findViewById(R.id.btnHot).setBackgroundResource(
+                currentFilter == FilterType.HOT ? R.drawable.oval_button_background : 0
+        );
+        ((TextView) findViewById(R.id.btnHot)).setTextColor(
+                currentFilter == FilterType.HOT ? activeColor : inactiveColor
+        );
 
-        CoinGeckoApi api = ApiClient.getClient().create(CoinGeckoApi.class);
+        findViewById(R.id.btnGainers).setBackgroundResource(
+                currentFilter == FilterType.GAINERS ? R.drawable.oval_button_background : 0
+        );
+        ((TextView) findViewById(R.id.btnGainers)).setTextColor(
+                currentFilter == FilterType.GAINERS ? activeColor : inactiveColor
+        );
 
-        for (int page = 1; page <= totalPages; page++) {
-            int currentPage = page;
-            Call<List<CoinGeckoCoin>> call = api.getCoins("usd", "market_cap_desc", 250, currentPage, false);
+        findViewById(R.id.btnLosers).setBackgroundResource(
+                currentFilter == FilterType.LOSERS ? R.drawable.oval_button_background : 0
+        );
+        ((TextView) findViewById(R.id.btnLosers)).setTextColor(
+                currentFilter == FilterType.LOSERS ? activeColor : inactiveColor
+        );
+    }
 
-            call.enqueue(new Callback<List<CoinGeckoCoin>>() {
-                @Override
-                public void onResponse(Call<List<CoinGeckoCoin>> call, Response<List<CoinGeckoCoin>> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        for (CoinGeckoCoin c : response.body()) {
-                            tempList.add(new Coin(
-                                    c.getId(),
-                                    c.getSymbol(),
-                                    c.getCurrentPrice(),
-                                    c.getPriceChangePercentage24h()
-                            ));
-                        }
-                    }
+    // 🔍 Filtering
+    private void filterCoins(String query) {
+        List<Coin> filtered = new ArrayList<>();
+        String search = query.toLowerCase();
 
-                    pagesFetched[0]++;
-                    if (pagesFetched[0] == totalPages) {
-                        allCoinsList.addAll(tempList);
-                        filterCoins(etSearchCoin.getText().toString());
-                        swipeRefresh.setRefreshing(false);
-                    }
-                }
+        for (Coin coin : allCoinsList) {
+            if (!coin.getSymbol().toLowerCase().contains(search)) continue;
 
-                @Override
-                public void onFailure(Call<List<CoinGeckoCoin>> call, Throwable t) {
-                    pagesFetched[0]++;
-                    if (pagesFetched[0] == totalPages) {
-                        allCoinsList.addAll(tempList);
-                        filterCoins(etSearchCoin.getText().toString());
-                        swipeRefresh.setRefreshing(false);
-                    }
-                    Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });
+            if (currentFilter == FilterType.GAINERS && coin.getChangePercent24h() <= 0) continue;
+            if (currentFilter == FilterType.LOSERS && coin.getChangePercent24h() >= 0) continue;
+
+            filtered.add(coin);
+        }
+        adapter.updateData(filtered);
+        updateTabUI();
+    }
+
+    // 📂 Load JSON from /assets
+    private void loadLocalCoins() {
+        try {
+            InputStream is = getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            allCoinsList.clear();
+            allCoinsList.addAll(response.coins);
+            filterCoins("");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "ERROR loading JSON!", Toast.LENGTH_SHORT).show();
         }
     }
 }

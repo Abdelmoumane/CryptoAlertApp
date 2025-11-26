@@ -1,97 +1,97 @@
 package com.example.myapplication;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
-// ⚠ مهم جدًا للأنيميشن:
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-
-import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.mikephil.charting.charts.CandleStickChart;
 import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.CandleData;
 import com.github.mikephil.charting.data.CandleDataSet;
 import com.github.mikephil.charting.data.CandleEntry;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class CoinChartActivity extends AppCompatActivity {
 
     private CandleStickChart candleChart;
-    private Button btn1D, btn7D, btn30D;
-    private String coinSymbol;
-    private BottomNavigationView bottomNavigationView;
     private ImageButton btnZoomIn, btnZoomOut;
+    private BottomNavigationView bottomNavigationView;
+
     private List<Long> timestamps = new ArrayList<>();
+    private String coinSymbol;
 
-
+    private Button btn1D, btn7D, btn30D;
+    private TextView tvCoinName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_coin_chart);
 
-        candleChart = findViewById(R.id.candleChart);
-        btn1D = findViewById(R.id.btn1D);
-        btn7D = findViewById(R.id.btn7D);
-        btn30D = findViewById(R.id.btn30D);
-        btnZoomIn   = findViewById(R.id.btnZoomIn);
-        btnZoomOut  = findViewById(R.id.btnZoomOut);
+        // 1️⃣ ربط العناصر
+        candleChart     = findViewById(R.id.candleChart);
+        btnZoomIn       = findViewById(R.id.btnZoomIn);
+        btnZoomOut      = findViewById(R.id.btnZoomOut);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        tvCoinName      = findViewById(R.id.tvCoinName);
+        btn1D           = findViewById(R.id.btn1D);
+        btn7D           = findViewById(R.id.btn7D);
+        btn30D          = findViewById(R.id.btn30D);
 
-        // ⚡ تحميل الأنيميشن
-        Animation fadeIn  = AnimationUtils.loadAnimation(this, R.anim.fade_in);
-        Animation fadeOut = AnimationUtils.loadAnimation(this, R.anim.fade_out);
-
-        // 🔍 زر التكبير +
-        btnZoomIn.setOnClickListener(v -> {
-            candleChart.zoomIn();
-            v.startAnimation(fadeIn);   // تأثير حركة راقية
-        });
-
-        // 🔎 زر التصغير -
-        btnZoomOut.setOnClickListener(v -> {
-            candleChart.zoomOut();
-            v.startAnimation(fadeOut);
-        });
-
-        setupChartSettings();
-
+        // 2️⃣ استقبال اسم العملة
         coinSymbol = getIntent().getStringExtra("coin_id");
         if (coinSymbol == null || coinSymbol.isEmpty()) {
-            Toast.makeText(this, "Error: No Coin ID passed!", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+            coinSymbol = "bitcoin";
         }
 
-        fetchOHLCData(coinSymbol, 1);
+        // 3️⃣ عرض اسم العملة
+        tvCoinName.setText(coinSymbol.toUpperCase() + " / USD");
 
-        btn1D.setOnClickListener(v -> fetchOHLCData(coinSymbol, 1));
-        btn7D.setOnClickListener(v -> fetchOHLCData(coinSymbol, 7));
-        btn30D.setOnClickListener(v -> fetchOHLCData(coinSymbol, 30));
+        // 4️⃣ تحميل البيانات
+        loadLocalChartData(coinSymbol, "1d");
+        setupChartStyle();
 
+        // 🔁 الأزرا ر
+        btn1D.setOnClickListener(v -> {
+            loadLocalChartData(coinSymbol, "1d");
+            setActive(btn1D);
+        });
+        btn7D.setOnClickListener(v -> {
+            loadLocalChartData(coinSymbol, "7d");
+            setActive(btn7D);
+        });
+        btn30D.setOnClickListener(v -> {
+            loadLocalChartData(coinSymbol, "30d");
+            setActive(btn30D);
+        });
+
+        // 🔍 زووم
+        btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
+        btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
+
+        // 📌 البوتوم نافيغيشن
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
@@ -104,138 +104,141 @@ public class CoinChartActivity extends AppCompatActivity {
                 return true;
             }
             else if (id == R.id.nav_notify) {
-                showAlertDialog();
+                showAlertDialog();  // IMPORTANT!!
+                return true;
+            }
+            else if (id == R.id.nav_whale_alerts) {
+                startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
             }
             return false;
         });
     }
 
-    private void setupChartSettings() {
-        candleChart.setDragEnabled(true);
-        candleChart.setScaleEnabled(true);
-        candleChart.setPinchZoom(true);
-        candleChart.setDoubleTapToZoomEnabled(true);
-        candleChart.getDescription().setEnabled(false);
+    // 🟢 تحميل البيانات من JSON حسب الفترة
+    private void loadLocalChartData(String coinId, String period) {
+        try {
+            InputStream is = getAssets().open("charts.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
 
-        XAxis xAxis = candleChart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setDrawGridLines(false);
-        xAxis.setGranularity(1f);
-    }
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            JsonObject allCharts = new Gson().fromJson(json, JsonObject.class);
+            JsonObject coinData = allCharts.getAsJsonObject(coinId.toLowerCase());
 
-    private void fetchOHLCData(String coinId, int days) {
-
-        CoinGeckoApi api = RetrofitClient.getInstance().create(CoinGeckoApi.class);
-        api.getOHLC(coinId, "usd", days).enqueue(new Callback<List<List<Double>>>() {
-            @Override
-            public void onResponse(@NonNull Call<List<List<Double>>> call,
-                                   @NonNull Response<List<List<Double>>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-
-                    List<CandleEntry> candleEntries = new ArrayList<>();
-                    timestamps.clear();   // 👈 مهم جدًا
-
-                    for (int i = 0; i < response.body().size(); i++) {
-                        List<Double> data = response.body().get(i);
-
-                        timestamps.add(data.get(0).longValue());  // حفظ التاريخ الحقيقي
-
-                        candleEntries.add(new CandleEntry(
-                                i,
-                                data.get(2).floatValue(),  // High
-                                data.get(3).floatValue(),  // Low
-                                data.get(1).floatValue(),  // Open
-                                data.get(4).floatValue()   // Close
-                        ));
-                    }
-
-                    // 🔥 تجهيز الداتا
-                    CandleDataSet dataSet = new CandleDataSet(candleEntries, coinId.toUpperCase() + " / USD");
-                    dataSet.setDecreasingColor(Color.RED);
-                    dataSet.setIncreasingColor(Color.GREEN);
-                    dataSet.setShadowColor(Color.WHITE);
-                    dataSet.setNeutralColor(Color.GRAY);
-                    dataSet.setDrawValues(false);
-
-                    candleChart.setData(new CandleData(dataSet));
-
-                    // 📌 تفعيل MarkerView
-                    CustomMarkerView marker = new CustomMarkerView(
-                            CoinChartActivity.this,
-                            R.layout.marker_view,
-                            timestamps   // ← مهم جدًا!
-                    );
-                    candleChart.setMarker(marker);
-
-                    // 📅 حل مشكلة التاريخ في XAxis
-                    XAxis xAxis = candleChart.getXAxis();
-                    xAxis.setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
-                        @Override
-                        public String getFormattedValue(float value) {
-                            int index = (int) value;
-                            if (index >= 0 && index < timestamps.size()) {
-                                return new SimpleDateFormat("dd MMM", Locale.getDefault())
-                                        .format(new Date(timestamps.get(index)));
-                            }
-                            return "";
-                        }
-                    });
-
-                    // تحديث الشارت
-                    candleChart.invalidate();
-                    candleChart.setVisibleXRangeMinimum(5);
-                    candleChart.setVisibleXRangeMaximum(60);
-                    candleChart.moveViewToX(candleEntries.size());
-                }
+            if (coinData == null || !coinData.has(period)) {
+                Toast.makeText(this, "No data for: " + period, Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            @Override
-            public void onFailure(@NonNull Call<List<List<Double>>> call,
-                                  @NonNull Throwable t) {
-                Toast.makeText(CoinChartActivity.this, "Error loading chart!", Toast.LENGTH_SHORT).show();
+            JsonArray ohlcArray = coinData.getAsJsonArray(period);
+            List<CandleEntry> entries = new ArrayList<>();
+            timestamps.clear();
+
+            for (int i = 0; i < ohlcArray.size(); i++) {
+                JsonObject obj = ohlcArray.get(i).getAsJsonObject();
+
+                long time  = obj.get("time").getAsLong();
+                float open = obj.get("open").getAsFloat();
+                float high = obj.get("high").getAsFloat();
+                float low  = obj.get("low").getAsFloat();
+                float close= obj.get("close").getAsFloat();
+
+                timestamps.add(time);
+                entries.add(new CandleEntry(i, high, low, open, close));
             }
-        });
+
+            CandleDataSet dataSet = new CandleDataSet(entries, coinSymbol.toUpperCase());
+            dataSet.setDecreasingColor(Color.RED);
+            dataSet.setIncreasingColor(Color.GREEN);
+            dataSet.setShadowColor(Color.GRAY);
+            dataSet.setDrawValues(false);
+
+            candleChart.setData(new CandleData(dataSet));
+            candleChart.invalidate();
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Error loading data!", Toast.LENGTH_SHORT).show();
+        }
     }
 
-
-
+    // ➕ دالة عرض نافذة التنبيه
     private void showAlertDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_alert, null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add Price Alert");
+
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_alert, null);
         EditText etSymbol = dialogView.findViewById(R.id.etSymbol);
         EditText etTarget = dialogView.findViewById(R.id.etTarget);
         Button btnSave = dialogView.findViewById(R.id.btnSave);
 
         etSymbol.setText(coinSymbol.toUpperCase());
-
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(dialogView).create();
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
 
         btnSave.setOnClickListener(v -> {
-            String symbol = etSymbol.getText().toString().trim();
+            String symbol = etSymbol.getText().toString().trim().toUpperCase();
             String target = etTarget.getText().toString().trim();
 
             if (symbol.isEmpty() || target.isEmpty()) {
-                Toast.makeText(this, "Enter all data", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Enter all data!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            double price;
-            try { price = Double.parseDouble(target); }
-            catch (Exception e) { Toast.makeText(this, "Invalid number", Toast.LENGTH_SHORT).show(); return; }
+            PriceAlert alert = new PriceAlert();
+            alert.coinSymbol = symbol;
+            alert.targetPrice = Double.parseDouble(target);
 
-            Executors.newSingleThreadExecutor().execute(() -> {
-                PriceAlert alert = new PriceAlert();
-                alert.coinSymbol = symbol;
-                alert.targetPrice = price;
+            new Thread(() -> {
                 AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
-
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Alert saved!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 });
-            });
+            }).start();
         });
 
         dialog.show();
     }
+
+
+    // 🎨 تنسيق الشارت
+    private void setupChartStyle() {
+        candleChart.setBackgroundColor(Color.BLACK);
+        candleChart.getDescription().setEnabled(false);
+        candleChart.setPinchZoom(true);
+        //candleChart.getLegend().setTextColor(Color.WHITE);
+
+        XAxis xAxis = candleChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(Color.WHITE);
+
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int index = Math.round(value);
+                if (index >= 0 && index < timestamps.size()) {
+                    return new SimpleDateFormat("dd MMM", Locale.getDefault())
+                            .format(new Date(timestamps.get(index)));
+                }
+                return "";
+            }
+        });
+
+        YAxis left = candleChart.getAxisLeft();
+        left.setTextColor(Color.WHITE);
+        candleChart.getAxisRight().setEnabled(false);
+    }
+
+    private void setActive(Button activeBtn) {
+        btn1D.setTextColor(Color.GRAY);
+        btn7D.setTextColor(Color.GRAY);
+        btn30D.setTextColor(Color.GRAY);
+
+        activeBtn.setTextColor(Color.BLACK);
+    }
+
+
+
 }

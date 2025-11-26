@@ -12,6 +12,8 @@
     <color name="bottom_nav_bg">#202020</color>   <!-- أسود فاتح -->
     <color name="bottom_nav_icon">#FFFFFF</color> <!-- أبيض -->
     <color name="white">#FFFFFF</color>
+    <color name="tint">#FFD700</color>
+
 
 
 
