@@ -1,0 +1,8 @@
+{
+  "coins": [
+    { "id": "bitcoin", "symbol": "btc", "price": 54222.45, "change_24h": 2.15 },
+    { "id": "ethereum", "symbol": "eth", "price": 2990.30, "change_24h": -1.35 },
+    { "id": "solana", "symbol": "sol", "price": 118.99, "change_24h": 5.60 },
+    { "id": "xrp", "symbol": "xrp", "price": 0.62, "change_24h": -0.75 }
+  ]
+}
