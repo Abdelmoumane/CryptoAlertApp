@@ -1,16 +1,16 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import androidx.appcompat.app.AppCompatDelegate;
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.View;
+import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // ⭐ الثيم يتم ضبطه هنا فقط — مرة واحدة فقط قبل setContentView()
+        // ⭐ ضبط الثيم قبل عرض الشاشة
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -60,6 +60,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // ⭐ Bottom Navigation
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setSelectedItemId(R.id.nav_home);
+
         // 🌗 Theme Switcher
         Switch switchTheme = findViewById(R.id.switchTheme);
         switchTheme.setChecked(isDarkMode);
@@ -67,16 +71,13 @@ public class MainActivity extends AppCompatActivity {
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             prefs.edit().putBoolean("dark_mode", isChecked).apply();
 
-            // ⭐ نغلق الـActivity بالكامل ونفتحه بثيم جديد
-            finish();
-            startActivity(getIntent());
+            recreate(); // أو  finish(); startActivity(getIntent());
+
         });
 
-        // باقي الكود عادي...
 
 
-
-        // 🛡 الإشعارات
+        // 🛡 الصلاحيات
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -84,7 +85,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        testWorker(); // 🚀 Worker
+        // 🚀 Worker
+        testWorker();
 
         // 🔗 Views
         rvCoins = findViewById(R.id.rvCoins);
@@ -105,8 +107,6 @@ public class MainActivity extends AppCompatActivity {
         loadLocalCoins();
     }
 
-
-
     // 🟢 Worker
     private void testWorker() {
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
@@ -114,12 +114,6 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         WorkManager.getInstance(this).enqueue(request);
-        WorkManager.getInstance(this).getWorkInfoByIdLiveData(request.getId())
-                .observe(this, workInfo -> {
-                    if (workInfo != null && workInfo.getState().isFinished()) {
-                        testWorker();
-                    }
-                });
     }
 
     // 🔽 Bottom Navigation
@@ -127,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
+
             if (id == R.id.nav_alerts) {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
@@ -181,10 +176,11 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // 🔍 Search
+    // 🔍 Search Filter
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 filterCoins(s.toString());
             }
@@ -211,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 🎨 لون التاب حسب الحالة
+    // 🎨 Update Tabs Color
     private void updateTabUI() {
         int activeColor = getResources().getColor(R.color.textPrimary);
         int inactiveColor = getResources().getColor(R.color.textSecondary);
@@ -244,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         updateTabUI();
     }
 
-    // 📂 Load Local JSON
+    // 📂 Load JSON
     private void loadLocalCoins() {
         try {
             InputStream is = getAssets().open("coins.json");
@@ -263,5 +259,15 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(this, "ERROR loading JSON!", Toast.LENGTH_SHORT).show();
         }
+
+
+
     }
+
+    // 🛡 يمنع إعادة بناء الشاشة عند تغيير الثيم لتفادي الاهتزاز والفلاش
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
 }

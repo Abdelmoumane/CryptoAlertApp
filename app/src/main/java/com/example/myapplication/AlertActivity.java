@@ -1,14 +1,17 @@
 package com.example.myapplication;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,66 +22,78 @@ import java.util.List;
 public class AlertActivity extends AppCompatActivity {
 
     private RecyclerView rvAlerts;
-    private AlertAdapter alertAdapter; // لازم يكون فيه Adapter 👍
+    private AlertAdapter alertAdapter;
+    private SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // ⭐ استخدم الثيم قبل الشاشة
+        prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
+        AppCompatDelegate.setDefaultNightMode(
+                isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_alerts);   // هذا ملف XML الخاص بعرض التنبيهات
+        setContentView(R.layout.activity_alerts);
 
-        // ✔ إعداد Toolbar مع زر رجوع
-        Toolbar toolbar = findViewById(R.id.toolbar_alerts);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true); // يظهر زر رجوع
-
-        // 🎯 جعل زر < لونه أبيض
-        if (toolbar.getNavigationIcon() != null) {
-            toolbar.getNavigationIcon()
-                    .setTint(ContextCompat.getColor(this, android.R.color.white));
-        }
-        toolbar.setNavigationOnClickListener(v -> finish()); // يرجع للصفحة السابقة
-
-        rvAlerts = findViewById(R.id.rvAlerts);
-        rvAlerts.setLayoutManager(new LinearLayoutManager(this));  // RecyclerView
-
-
-        // تحميل البيانات من Room DB
-        loadAlertsFromDB();
-        // ⬇️ أضف هذا الجزء هنا داخل onCreate
+        // 📌 Bottom Navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation_alerts);
+        bottomNav.setSelectedItemId(R.id.nav_alerts);
+
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
             if (id == R.id.nav_home) {
-                finish();  // 🔙 يرجع لصفحة MainActivity
+                startActivity(new Intent(this, MainActivity.class));
                 return true;
-            }
-            else if (id == R.id.nav_alerts) {
-                return true; // انت بالفعل هنا
-            }
-            else if (id == R.id.nav_notify) {
-                showAlertDialog();  // إضافة تنبيه
+
+            } else if (id == R.id.nav_notify) {
+                showAlertDialog();   // تم إصلاحها 👈
                 return true;
+
+            } else if (id == R.id.nav_alerts) {
+                return true; // انت هنا الآن
             }
             return false;
         });
+
+        // 🧭 Toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar_alerts);
+        setSupportActionBar(toolbar);
+        toolbar.setNavigationOnClickListener(v -> finish());
+
+        // 📌 RecyclerView
+        rvAlerts = findViewById(R.id.rvAlerts);
+        rvAlerts.setLayoutManager(new LinearLayoutManager(this));
+
+        loadAlertsFromDB();  // تم إصلاحها 👈
     }
 
+    // ⭐ لكي يظل الثيم ثابت لما نرجع
+    @Override
+    protected void onResume() {
+        super.onResume();
+        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
+        AppCompatDelegate.setDefaultNightMode(
+                isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
+    }
 
-
-    // 🔁 تحميل التنبيهات من قاعدة البيانات
+    // 📌 تحميل التنبيهات من قاعدة البيانات
     private void loadAlertsFromDB() {
         new Thread(() -> {
             List<PriceAlert> alerts = AppDatabase.getDatabase(this).priceAlertDao().getAllAlerts();
 
             runOnUiThread(() -> {
-                alertAdapter = new AlertAdapter(alerts, AlertActivity.this); // تمرير context
+                alertAdapter = new AlertAdapter(alerts, AlertActivity.this);
                 rvAlerts.setAdapter(alertAdapter);
             });
         }).start();
     }
 
-    // ➕ نافذة إضافة تنبيه
+    // 📌 Dialog لإضافة تنبيه جديد
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -96,7 +111,7 @@ public class AlertActivity extends AppCompatActivity {
             String target = etTarget.getText().toString().trim();
 
             if (symbol.isEmpty() || target.isEmpty()) {
-                Toast.makeText(this, "Please enter all data", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Enter all data", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -104,7 +119,7 @@ public class AlertActivity extends AppCompatActivity {
             try {
                 targetPrice = Double.parseDouble(target);
             } catch (NumberFormatException e) {
-                Toast.makeText(this, "Invalid number", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Invalid price", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -116,13 +131,19 @@ public class AlertActivity extends AppCompatActivity {
                 AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
 
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Alert saved successfully!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Alert Saved!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
-                    loadAlertsFromDB(); // 🔁 تحديث القائمة
+                    loadAlertsFromDB();  // تحديث القائمة
                 });
             }).start();
         });
 
         dialog.show();
     }
+    // 🛡 لتفادي إعادة بناء الشاشة عند تغيير الثيم (يمنع الفلاش والاهتزاز)
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
 }

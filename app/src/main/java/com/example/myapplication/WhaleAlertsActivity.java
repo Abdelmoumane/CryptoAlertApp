@@ -1,10 +1,12 @@
 package com.example.myapplication;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,11 +21,23 @@ import java.util.List;
 public class WhaleAlertsActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
+    private SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // ⭐ الثيم قبل الشاشة
+        prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
+        AppCompatDelegate.setDefaultNightMode(
+                isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_whale_alerts);
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setSelectedItemId(R.id.nav_whale_alerts);
 
         Toolbar toolbar = findViewById(R.id.toolbar_whales);
         setSupportActionBar(toolbar);
@@ -38,9 +52,6 @@ public class WhaleAlertsActivity extends AppCompatActivity {
         setupBottomNavigation();
     }
 
-    // ------------------------------------------------
-    // 📁 تحميل البيانات من ملف داخل التطبيق (assets/whales.json)
-    // ------------------------------------------------
     private void loadFromLocalJson() {
         try {
             InputStream is = getAssets().open("whales.json");
@@ -63,9 +74,6 @@ public class WhaleAlertsActivity extends AppCompatActivity {
         }
     }
 
-    // ------------------------------------------------
-    // 🔽 Bottom Menu
-    // ------------------------------------------------
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
@@ -88,5 +96,11 @@ public class WhaleAlertsActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    // 🛡 لمنع إعادة البناء عند تغيير الثيم (يمنع الفلاش)
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 }

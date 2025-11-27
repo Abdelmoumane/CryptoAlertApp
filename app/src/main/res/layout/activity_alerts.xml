@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorBackground"
-    android:padding="12dp">
+    android:padding="8dp">
 
     <!-- 🔥 Toolbar -->
     <androidx.appcompat.widget.Toolbar
@@ -19,15 +19,15 @@
         android:padding="12dp"
         app:navigationIcon="@drawable/ic_arrow_back"/>
 
-    <!-- 🔁 RecyclerView -->
+    <!-- 📌 RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvAlerts"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingBottom="8dp"/>
+        android:scrollbars="vertical"/>
 
-    <!-- ⬇️ Bottom Navigation -->
+    <!-- 📎 Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation_alerts"
         android:layout_width="match_parent"

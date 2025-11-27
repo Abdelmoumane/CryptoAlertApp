@@ -38,7 +38,6 @@ public class CoinChartActivity extends AppCompatActivity {
     private CandleStickChart candleChart;
     private ImageButton btnZoomIn, btnZoomOut;
     private BottomNavigationView bottomNavigationView;
-
     private List<Long> timestamps = new ArrayList<>();
     private String coinSymbol;
 
@@ -51,14 +50,14 @@ public class CoinChartActivity extends AppCompatActivity {
         setContentView(R.layout.activity_coin_chart);
 
         // 1️⃣ ربط العناصر
-        candleChart     = findViewById(R.id.candleChart);
-        btnZoomIn       = findViewById(R.id.btnZoomIn);
-        btnZoomOut      = findViewById(R.id.btnZoomOut);
+        candleChart = findViewById(R.id.candleChart);
+        btnZoomIn = findViewById(R.id.btnZoomIn);
+        btnZoomOut = findViewById(R.id.btnZoomOut);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
-        tvCoinName      = findViewById(R.id.tvCoinName);
-        btn1D           = findViewById(R.id.btn1D);
-        btn7D           = findViewById(R.id.btn7D);
-        btn30D          = findViewById(R.id.btn30D);
+        tvCoinName = findViewById(R.id.tvCoinName);
+        btn1D = findViewById(R.id.btn1D);
+        btn7D = findViewById(R.id.btn7D);
+        btn30D = findViewById(R.id.btn30D);
 
         // 2️⃣ استقبال اسم العملة
         coinSymbol = getIntent().getStringExtra("coin_id");
@@ -73,7 +72,7 @@ public class CoinChartActivity extends AppCompatActivity {
         loadLocalChartData(coinSymbol, "1d");
         setupChartStyle();
 
-        // 🔁 الأزرا ر
+        // ⏱ الفترات الزمنية
         btn1D.setOnClickListener(v -> {
             loadLocalChartData(coinSymbol, "1d");
             setActive(btn1D);
@@ -91,23 +90,20 @@ public class CoinChartActivity extends AppCompatActivity {
         btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
         btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
 
-        // 📌 البوتوم نافيغيشن
+        // 🚀 Bottom Navigation — تمت إضافة showAlertDialog 👌
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
             if (id == R.id.nav_home) {
                 finish();
                 return true;
-            }
-            else if (id == R.id.nav_alerts) {
+            } else if (id == R.id.nav_alerts) {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
-            }
-            else if (id == R.id.nav_notify) {
-                showAlertDialog();  // IMPORTANT!!
+            } else if (id == R.id.nav_notify) {
+                showAlertDialog(); // 🔥 الآن يعمل بدون أخطاء
                 return true;
-            }
-            else if (id == R.id.nav_whale_alerts) {
+            } else if (id == R.id.nav_whale_alerts) {
                 startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
             }
@@ -139,11 +135,11 @@ public class CoinChartActivity extends AppCompatActivity {
             for (int i = 0; i < ohlcArray.size(); i++) {
                 JsonObject obj = ohlcArray.get(i).getAsJsonObject();
 
-                long time  = obj.get("time").getAsLong();
+                long time = obj.get("time").getAsLong();
                 float open = obj.get("open").getAsFloat();
                 float high = obj.get("high").getAsFloat();
-                float low  = obj.get("low").getAsFloat();
-                float close= obj.get("close").getAsFloat();
+                float low = obj.get("low").getAsFloat();
+                float close = obj.get("close").getAsFloat();
 
                 timestamps.add(time);
                 entries.add(new CandleEntry(i, high, low, open, close));
@@ -163,7 +159,44 @@ public class CoinChartActivity extends AppCompatActivity {
         }
     }
 
-    // ➕ دالة عرض نافذة التنبيه
+    // 🧠 تنسيق الشارت
+    private void setupChartStyle() {
+        CustomMarkerView markerView = new CustomMarkerView(this, R.layout.marker_view, timestamps);
+        candleChart.setMarker(markerView);
+
+        candleChart.setBackgroundColor(Color.BLACK);
+        candleChart.getDescription().setEnabled(false);
+        candleChart.setPinchZoom(true);
+
+        XAxis xAxis = candleChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(Color.WHITE);
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int index = Math.round(value);
+                if (index >= 0 && index < timestamps.size()) {
+                    return new SimpleDateFormat("dd MMM", Locale.getDefault())
+                            .format(new Date(timestamps.get(index)));
+                }
+                return "";
+            }
+        });
+
+        YAxis left = candleChart.getAxisLeft();
+        left.setTextColor(Color.WHITE);
+        candleChart.getAxisRight().setEnabled(false);
+    }
+
+    private void setActive(Button activeBtn) {
+        btn1D.setTextColor(Color.GRAY);
+        btn7D.setTextColor(Color.GRAY);
+        btn30D.setTextColor(Color.GRAY);
+
+        activeBtn.setTextColor(Color.BLACK);
+    }
+
+    // 📌 🟢🟢 تم إضافة الميثود المفقود هنا (حل نهائي)
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -201,51 +234,4 @@ public class CoinChartActivity extends AppCompatActivity {
 
         dialog.show();
     }
-
-
-    // 🎨 تنسيق الشارت
-    private void setupChartStyle() {
-
-        // 📌 Marker View (عرض معلومات الشمعة عند اللمس)
-        CustomMarkerView markerView = new CustomMarkerView(this, R.layout.marker_view, timestamps);
-        candleChart.setMarker(markerView);
-
-
-
-        candleChart.setBackgroundColor(Color.BLACK);
-        candleChart.getDescription().setEnabled(false);
-        candleChart.setPinchZoom(true);
-        //candleChart.getLegend().setTextColor(Color.WHITE);
-
-        XAxis xAxis = candleChart.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextColor(Color.WHITE);
-
-        xAxis.setValueFormatter(new ValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                int index = Math.round(value);
-                if (index >= 0 && index < timestamps.size()) {
-                    return new SimpleDateFormat("dd MMM", Locale.getDefault())
-                            .format(new Date(timestamps.get(index)));
-                }
-                return "";
-            }
-        });
-
-        YAxis left = candleChart.getAxisLeft();
-        left.setTextColor(Color.WHITE);
-        candleChart.getAxisRight().setEnabled(false);
-    }
-
-    private void setActive(Button activeBtn) {
-        btn1D.setTextColor(Color.GRAY);
-        btn7D.setTextColor(Color.GRAY);
-        btn30D.setTextColor(Color.GRAY);
-
-        activeBtn.setTextColor(Color.BLACK);
-    }
-
-
-
 }

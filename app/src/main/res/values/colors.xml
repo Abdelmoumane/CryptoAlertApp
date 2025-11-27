@@ -17,12 +17,13 @@
 
     <!-- ⚙ EXTRA COLORS (optional use) -->
     <color name="bottom_nav_bg">#202020</color>     <!-- خلفية Bottom Nav -->
-    <color name="bottom_nav_icon">#FFFFFF</color>   <!-- أيقونات Bottom Nav -->
     <color name="accent">#F4B400</color>            <!-- Accent إضافي -->
     <color name="purple_500">#673AB7</color>        <!-- Purple (اختياري) -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="tint">#FFD700</color>              <!-- ذهب — ممكن للـ Icon/Tabs -->
     <color name="teal_700">#018786</color>
+
+
 
 </resources>

@@ -13,6 +13,9 @@
         <!-- خلفية الكروت / الـ surface -->
         <item name="colorSurface">@color/colorCard</item>
 
+        <item name="android:windowAnimationStyle">@null</item>
+
+
     </style>
 
 </resources>

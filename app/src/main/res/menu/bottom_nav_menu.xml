@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
         android:id="@+id/nav_home"
         android:icon="@drawable/ic_home"
-        android:title="Home" />
+        android:title="Home"
+        app:showAsAction="ifRoom" />
 
-    <!-- زر جديد في الوسط -->
     <item
         android:id="@+id/nav_alerts"
         android:icon="@drawable/ic_alert"
-        android:title="My Alerts" />
+        android:title="My Alerts"
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/nav_notify"
         android:icon="@drawable/ic_notifications"
-        android:title="Notify" />
+        android:title="Notify"
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/nav_whale_alerts"
         android:icon="@drawable/ic_whale"
-    android:title="Whale Alerts" />
-
-
+        android:title="Whale Alerts"
+        app:showAsAction="ifRoom" />
 </menu>
