@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#101010"
+    android:background="@color/colorBackground"
     android:padding="8dp">
 
     <!-- 🔍 Search Bar -->
@@ -15,18 +16,18 @@
         android:hint="Search coin..."
         android:padding="10dp"
         android:background="@drawable/search_bg"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
-        android:drawableLeft="@android:drawable/ic_menu_search" />
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:drawableLeft="@android:drawable/ic_menu_search"/>
 
-    <!-- 🔥 Buttons Hot, Gainers, Losers -->
+    <!-- 🔥 Buttons Hot / Gainers / Losers -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:layout_marginTop="12dp"
-        android:weightSum="3"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:weightSum="3">
 
         <TextView
             android:id="@+id/btnHot"
@@ -34,14 +35,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Hot"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="18sp"
             android:textStyle="bold"
             android:padding="10dp"
             android:gravity="center"
             android:background="@drawable/oval_button_background"
-            android:clickable="true"
-            android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless" />
 
         <TextView
@@ -50,14 +49,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Gainers"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="18sp"
             android:textStyle="bold"
             android:padding="10dp"
             android:gravity="center"
             android:background="@drawable/oval_button_background"
-            android:clickable="true"
-            android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless" />
 
         <TextView
@@ -66,14 +63,12 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Losers"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="18sp"
             android:textStyle="bold"
             android:padding="10dp"
             android:gravity="center"
             android:background="@drawable/oval_button_background"
-            android:clickable="true"
-            android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 
@@ -84,18 +79,16 @@
         android:orientation="horizontal"
         android:padding="8dp">
 
-        <!-- 🪙 SYMBOL -->
         <TextView
             android:id="@+id/tvHotSymbol"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Symbol"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <!-- 💰 LAST -->
         <TextView
             android:id="@+id/tvHotPrice"
             android:layout_width="0dp"
@@ -103,11 +96,10 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="Last"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <!-- 📉 CHANGE -->
         <TextView
             android:id="@+id/tvHotChange"
             android:layout_width="0dp"
@@ -115,7 +107,7 @@
             android:layout_weight="1"
             android:gravity="end"
             android:text="Chng 24H"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="16sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -131,8 +123,7 @@
             android:id="@+id/rvCoins"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scrollbars="vertical" />
-
+            android:scrollbars="vertical"/>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <!-- ====================== BOTTOM NAV ====================== -->
@@ -140,11 +131,10 @@
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#141414"
-        app:labelVisibilityMode="labeled"
-
+        android:background="@color/colorCard"
         app:itemIconTint="@color/bottom_nav_icon"
-    app:itemTextColor="@color/bottom_nav_icon"
-    app:menu="@menu/bottom_nav_menu" />
+        app:itemTextColor="@color/bottom_nav_icon"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"/>
 
 </LinearLayout>

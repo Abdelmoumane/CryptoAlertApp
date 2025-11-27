@@ -1,45 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:background="#101010">
+    android:background="@color/colorBackground"
+    android:padding="12dp">
 
-    <!-- 🔥 Toolbar أسود واحترافي -->
+    <!-- 🔥 Toolbar -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar_alerts"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#101010"
+        android:background="@color/colorBackground"
         android:title="My Price Alerts"
-        android:titleTextColor="#FFFFFF"
+        android:titleTextColor="@color/textPrimary"
         android:padding="12dp"
-        app:navigationIcon="@drawable/ic_arrow_back" />
+        app:navigationIcon="@drawable/ic_arrow_back"/>
 
-
-
-    <!-- RecyclerView -->
+    <!-- 🔁 RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvAlerts"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:paddingBottom="8dp"/>
 
-    <!-- Bottom Navigation -->
+    <!-- ⬇️ Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation_alerts"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-
-        android:background="#141414"
-        app:itemIconTint="@color/white"
-        app:itemTextColor="@color/white"
-
+        android:background="@color/colorCard"
+        app:itemIconTint="@color/bottom_nav_icon"
+        app:itemTextColor="@color/bottom_nav_icon"
         app:menu="@menu/bottom_nav_menu"
-
-        app:labelVisibilityMode="labeled"
-        />
-
+        app:labelVisibilityMode="labeled"/>
 </LinearLayout>

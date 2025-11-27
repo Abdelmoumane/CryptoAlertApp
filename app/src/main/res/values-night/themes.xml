@@ -1,8 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+
     <style name="Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
+
+        <!-- حتى في الوضع الليلي نستخدم نفس اللون الأساسي -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorOnPrimary">@color/textPrimary</item>
+
+        <!-- خلفية الشاشة -->
         <item name="android:windowBackground">@color/colorBackground</item>
+
+        <!-- خلفية الكروت / الـ surface -->
         <item name="colorSurface">@color/colorCard</item>
+
     </style>
+
 </resources>

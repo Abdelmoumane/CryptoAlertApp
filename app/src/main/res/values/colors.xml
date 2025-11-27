@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#0B1020</color>
-    <color name="card">#121827</color>
-    <color name="text_primary">#E6EEF8</color>
-    <color name="gain">#21C17A</color>
-    <color name="loss">#FF5864</color>
-    <color name="accent">#F4B400</color>
-    <color name="purple_500">#673AB7</color>
-    <color name="black">#000000</color>
-    <color name="teal_700">#018786</color>
-    <color name="bottom_nav_bg">#202020</color>   <!-- أسود فاتح -->
-    <color name="bottom_nav_icon">#FFFFFF</color> <!-- أبيض -->
+
+    <!-- 🎯 PRIMARY APP COLORS (Core Theme) -->
+    <color name="colorBackground">#212121</color>   <!-- خلفية عامة -->
+    <color name="colorCard">#323232</color>         <!-- كروت + Bottom Nav -->
+    <color name="colorPrimary">#0D7377</color>      <!-- أزرار / Accent -->
+    <color name="colorAccent">#14FFEC</color>       <!-- تأثير / تمييز -->
+    <color name="textPrimary">#FFFFFF</color>       <!-- نص أساسي -->
+    <color name="textSecondary">#B0B0B0</color>     <!-- نص ثانوي -->
+
+    <!-- 📈 MARKET COLORS -->
+    <color name="gain">#21C17A</color>              <!-- لون الربح ▲ -->
+    <color name="loss">#FF5864</color>              <!-- لون الخسارة ▼ -->
+
+    <!-- ⚙ EXTRA COLORS (optional use) -->
+    <color name="bottom_nav_bg">#202020</color>     <!-- خلفية Bottom Nav -->
+    <color name="bottom_nav_icon">#FFFFFF</color>   <!-- أيقونات Bottom Nav -->
+    <color name="accent">#F4B400</color>            <!-- Accent إضافي -->
+    <color name="purple_500">#673AB7</color>        <!-- Purple (اختياري) -->
     <color name="white">#FFFFFF</color>
-    <color name="tint">#FFD700</color>
-
-    <color name="colorBackground">#212121</color>
-    <color name="colorCard">#323232</color>
-    <color name="colorPrimary">#0D7377</color>
-    <color name="colorAccent">#14FFEC</color>
-    <color name="textPrimary">#FFFFFF</color>
-    <color name="textSecondary">#B0B0B0</color>
-
-
-
-
-
+    <color name="black">#000000</color>
+    <color name="tint">#FFD700</color>              <!-- ذهب — ممكن للـ Icon/Tabs -->
+    <color name="teal_700">#018786</color>
 
 </resources>
