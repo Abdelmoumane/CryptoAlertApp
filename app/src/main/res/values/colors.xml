@@ -2,16 +2,18 @@
 <resources>
 
     <!-- 🎯 PRIMARY APP COLORS (Core Theme) -->
-    <color name="colorBackground">#212121</color>   <!-- خلفية عامة -->
-    <color name="colorCard">#323232</color>         <!-- كروت + Bottom Nav -->
+    <color name="colorBackground">#FFFFFF</color>   <!-- خلفية عامة -->
+    <color name="colorCard">#F1F1F1</color>         <!-- كروت + Bottom Nav -->
     <color name="colorPrimary">#0D7377</color>      <!-- أزرار / Accent -->
     <color name="colorAccent">#14FFEC</color>       <!-- تأثير / تمييز -->
-    <color name="textPrimary">#FFFFFF</color>       <!-- نص أساسي -->
-    <color name="textSecondary">#B0B0B0</color>     <!-- نص ثانوي -->
+    <color name="textPrimary">#000000</color>       <!-- نص أساسي -->
+    <color name="textSecondary">#555555</color>     <!-- نص ثانوي -->
 
     <!-- 📈 MARKET COLORS -->
     <color name="gain">#21C17A</color>              <!-- لون الربح ▲ -->
     <color name="loss">#FF5864</color>              <!-- لون الخسارة ▼ -->
+    <!-- Light mode colors -->
+    <color name="lightButtonActive">#D2F4FF</color>   <!-- سماوي فاتح -->
 
     <!-- ⚙ EXTRA COLORS (optional use) -->
     <color name="bottom_nav_bg">#202020</color>     <!-- خلفية Bottom Nav -->

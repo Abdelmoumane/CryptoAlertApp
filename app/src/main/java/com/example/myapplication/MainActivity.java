@@ -1,5 +1,7 @@
 package com.example.myapplication;
 
+import android.content.SharedPreferences;
+import androidx.appcompat.app.AppCompatDelegate;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,6 +14,7 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
+    private SharedPreferences prefs;
     private RecyclerView rvCoins;
     private MarketAdapter adapter;
     private List<Coin> allCoinsList = new ArrayList<>();
@@ -46,11 +50,33 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        super.onCreate(savedInstanceState);   // 🔥 لازم أول شيء
+        // ⭐ الثيم يتم ضبطه هنا فقط — مرة واحدة فقط قبل setContentView()
+        prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
+        AppCompatDelegate.setDefaultNightMode(
+                isDarkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
 
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 🛡 طلب صلاحية الإشعارات (مرّة واحدة فقط)
+        // 🌗 Theme Switcher
+        Switch switchTheme = findViewById(R.id.switchTheme);
+        switchTheme.setChecked(isDarkMode);
+
+        switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("dark_mode", isChecked).apply();
+
+            // ⭐ نغلق الـActivity بالكامل ونفتحه بثيم جديد
+            finish();
+            startActivity(getIntent());
+        });
+
+        // باقي الكود عادي...
+
+
+
+        // 🛡 الإشعارات
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -58,10 +84,9 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 🚀 شغل Worker كل 10 ثواني (فقط للتجريب)
-        testWorker();
+        testWorker(); // 🚀 Worker
 
-        // 🔗 ربط العناصر
+        // 🔗 Views
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
         swipeRefresh = findViewById(R.id.swipeRefresh);
@@ -80,39 +105,34 @@ public class MainActivity extends AppCompatActivity {
         loadLocalCoins();
     }
 
-    // 🟢 تكرار الـ Worker كل 10 ثواني (للتجريب فقط)
+
+
+    // 🟢 Worker
     private void testWorker() {
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
                 .setInitialDelay(10, TimeUnit.SECONDS)
                 .build();
 
         WorkManager.getInstance(this).enqueue(request);
-
         WorkManager.getInstance(this).getWorkInfoByIdLiveData(request.getId())
                 .observe(this, workInfo -> {
                     if (workInfo != null && workInfo.getState().isFinished()) {
-                        testWorker();  // 🔁 Loop
+                        testWorker();
                     }
                 });
     }
 
-
-    // ⬇ باقي الكلاسات كما هي ⬇
-
-
-    // 📌 Bottom Navigation
+    // 🔽 Bottom Navigation
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
-
             int id = item.getItemId();
-
             if (id == R.id.nav_alerts) {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
             }
-            else if (id == R.id.nav_notify) {  // 👈 المشكلة كانت هنا
-                showAlertDialog();             // 🟢 تشغيل زر Notify
+            else if (id == R.id.nav_notify) {
+                showAlertDialog();
                 return true;
             }
             else if (id == R.id.nav_whale_alerts) {
@@ -122,7 +142,8 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
     }
-    // 📌 إضافة تنبيه من MainActivity
+
+    // 📌 Dialog لإضافة تنبيه
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -160,21 +181,14 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-
-    // 🔍 Search Filter
+    // 🔍 Search
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterCoins(s.toString()); }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-        etSearchCoin.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
-                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                filterCoins(etSearchCoin.getText().toString());
-                return true;
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterCoins(s.toString());
             }
-            return false;
+            @Override public void afterTextChanged(Editable s) {}
         });
     }
 
@@ -197,51 +211,40 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 🎨 UI Update for Tabs
+    // 🎨 لون التاب حسب الحالة
     private void updateTabUI() {
-        int activeColor = 0xFFFFFFFF;
-        int inactiveColor = 0xFF888888;
+        int activeColor = getResources().getColor(R.color.textPrimary);
+        int inactiveColor = getResources().getColor(R.color.textSecondary);
 
-        findViewById(R.id.btnHot).setBackgroundResource(
-                currentFilter == FilterType.HOT ? R.drawable.oval_button_background : 0
-        );
-        ((TextView) findViewById(R.id.btnHot)).setTextColor(
-                currentFilter == FilterType.HOT ? activeColor : inactiveColor
-        );
+        TextView btnHot = findViewById(R.id.btnHot);
+        TextView btnGainers = findViewById(R.id.btnGainers);
+        TextView btnLosers = findViewById(R.id.btnLosers);
 
-        findViewById(R.id.btnGainers).setBackgroundResource(
-                currentFilter == FilterType.GAINERS ? R.drawable.oval_button_background : 0
-        );
-        ((TextView) findViewById(R.id.btnGainers)).setTextColor(
-                currentFilter == FilterType.GAINERS ? activeColor : inactiveColor
-        );
+        btnHot.setSelected(currentFilter == FilterType.HOT);
+        btnGainers.setSelected(currentFilter == FilterType.GAINERS);
+        btnLosers.setSelected(currentFilter == FilterType.LOSERS);
 
-        findViewById(R.id.btnLosers).setBackgroundResource(
-                currentFilter == FilterType.LOSERS ? R.drawable.oval_button_background : 0
-        );
-        ((TextView) findViewById(R.id.btnLosers)).setTextColor(
-                currentFilter == FilterType.LOSERS ? activeColor : inactiveColor
-        );
+        btnHot.setTextColor(btnHot.isSelected() ? activeColor : inactiveColor);
+        btnGainers.setTextColor(btnGainers.isSelected() ? activeColor : inactiveColor);
+        btnLosers.setTextColor(btnLosers.isSelected() ? activeColor : inactiveColor);
     }
 
-    // 🔍 Filtering
+    // 🔍 Filtering Coins
     private void filterCoins(String query) {
         List<Coin> filtered = new ArrayList<>();
         String search = query.toLowerCase();
 
         for (Coin coin : allCoinsList) {
             if (!coin.getSymbol().toLowerCase().contains(search)) continue;
-
             if (currentFilter == FilterType.GAINERS && coin.getChangePercent24h() <= 0) continue;
             if (currentFilter == FilterType.LOSERS && coin.getChangePercent24h() >= 0) continue;
-
             filtered.add(coin);
         }
         adapter.updateData(filtered);
         updateTabUI();
     }
 
-    // 📂 Load JSON from /assets
+    // 📂 Load Local JSON
     private void loadLocalCoins() {
         try {
             InputStream is = getAssets().open("coins.json");

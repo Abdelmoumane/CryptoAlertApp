@@ -1,23 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- حالة الضغط -->
+    <!-- عند الضغط -->
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <solid android:color="#DFEDEC" />  <!-- لون الخلفية عند الضغط -->
+            <solid android:color="#DDDDDD"/> <!-- رمادي فاتح -->
         </shape>
     </item>
 
-    <!-- حالة التمكين (مفعّل) -->
+    <!-- في Light Mode لما يكون الزر محدد -->
     <item android:state_selected="true">
         <shape android:shape="oval">
-            <solid android:color="#090909" />  <!-- لون الخلفية عند التحديد -->
+            <solid android:color="@color/lightButtonActive"/>
         </shape>
     </item>
 
     <!-- الحالة العادية -->
     <item>
         <shape android:shape="oval">
-            <solid android:color="@android:color/transparent" /> <!-- خلفية شفافة عادي -->
+            <solid android:color="@android:color/transparent" />
         </shape>
     </item>
 
