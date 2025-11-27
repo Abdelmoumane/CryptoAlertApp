@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
@@ -56,6 +58,14 @@ public class WhaleAdapter extends RecyclerView.Adapter<WhaleAdapter.WhaleViewHol
                 "to <font color='#1DA1F2'>" + item.to.owner + "</font>"; // Twitter Blue
 
         holder.tvFromTo.setText(Html.fromHtml(fromToText));
+        holder.itemView.setOnClickListener(v -> {
+            // ممكن تفتح صفحة Details هنا
+            // OR Toast للبداية 👇
+            Toast.makeText(v.getContext(),
+                    item.symbol.toUpperCase() + " clicked",
+                    Toast.LENGTH_SHORT).show();
+        });
+
     }
 
 

@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="24dp"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/colorBackground">
 
+    <!-- 🪙 إدخال الرمز -->
     <EditText
         android:id="@+id/etSymbol"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Coin Symbol(e.g.,BTC)"
+        android:hint="Coin Symbol (e.g., BTC)"
         android:inputType="text"
         android:textAllCaps="true"
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
         android:layout_marginBottom="16dp"/>
 
+    <!-- 💰 إدخال السعر -->
     <EditText
         android:id="@+id/etTarget"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Target Price"
         android:inputType="numberDecimal"
+        android:textColor="@color/textPrimary"
+        android:textColorHint="@color/textSecondary"
+        android:background="@drawable/edittext_bg"
+        android:padding="12dp"
         android:layout_marginBottom="24dp"/>
 
+    <!-- 💾 زر الحفظ -->
     <Button
         android:id="@+id/btnSave"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save Alert"
-        android:backgroundTint="@color/purple_500"
-        android:textColor="@android:color/white"
+        android:backgroundTint="@color/colorPrimary"
+        android:textColor="@color/textPrimary"
+        android:textStyle="bold"
         android:padding="12dp"/>
 </LinearLayout>

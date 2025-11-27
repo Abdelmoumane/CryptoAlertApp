@@ -1,33 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="140dp"
     android:layout_height="match_parent"
     android:layout_marginEnd="10dp"
-    android:padding="10dp"
-    android:background="#121827"
-    android:elevation="2dp">
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/colorCard">
 
-    <TextView
-        android:id="@+id/tvHotSymbol"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#E6EEF8"
-        android:textStyle="bold"
-        android:text="BTC"/>
+        android:padding="10dp"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tvHotPrice"
-        android:layout_marginTop="6dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#E6EEF8"
-        android:text="$0.00"/>
+        <!-- 🪙 الرمز -->
+        <TextView
+            android:id="@+id/tvHotSymbol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textPrimary"
+            android:textStyle="bold"
+            android:textSize="16sp"/>
 
-    <TextView
-        android:id="@+id/tvHotChange"
-        android:layout_marginTop="6dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="+0.00%"/>
-</LinearLayout>
+        <!-- 💵 السعر -->
+        <TextView
+            android:id="@+id/tvHotPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"/>
+
+        <!-- 📈 التغيير -->
+        <TextView
+            android:id="@+id/tvHotChange"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="14sp"/>
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
