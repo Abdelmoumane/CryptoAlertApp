@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- زر مفعّل -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="?attr/colorPrimary"/>   <!-- نفس لون الثيم -->
+        </shape>
+    </item>
+
+    <!-- زر غير مفعّل -->
+    <item android:state_selected="false">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+
+</selector>
