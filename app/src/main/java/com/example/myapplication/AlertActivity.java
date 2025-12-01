@@ -50,7 +50,11 @@ public class AlertActivity extends AppCompatActivity {
                 return true;
 
             } else if (id == R.id.nav_notify) {
-                showAlertDialog();   // تم إصلاحها 👈
+                showAlertDialog();
+                return true;
+
+            } else if (id == R.id.nav_whale_alerts) {  // 🐋 هنا الإضافة الجديدة
+                startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
 
             } else if (id == R.id.nav_alerts) {
@@ -58,6 +62,7 @@ public class AlertActivity extends AppCompatActivity {
             }
             return false;
         });
+
 
         // 🧭 Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar_alerts);
@@ -81,17 +86,25 @@ public class AlertActivity extends AppCompatActivity {
         );
     }
 
-    // 📌 تحميل التنبيهات من قاعدة البيانات
     private void loadAlertsFromDB() {
         new Thread(() -> {
-            List<PriceAlert> alerts = AppDatabase.getDatabase(this).priceAlertDao().getAllAlerts();
+            List<PriceAlert> alerts = AppDatabase.getDatabase(this)
+                    .priceAlertDao()
+                    .getAllAlerts();  // ← مهم جدًا!
 
             runOnUiThread(() -> {
+//                if (alerts.isEmpty()) {
+//                    Toast.makeText(this, "No alerts found", Toast.LENGTH_SHORT).show();
+//                }
+
                 alertAdapter = new AlertAdapter(alerts, AlertActivity.this);
                 rvAlerts.setAdapter(alertAdapter);
             });
         }).start();
     }
+
+
+
 
     // 📌 Dialog لإضافة تنبيه جديد
     private void showAlertDialog() {

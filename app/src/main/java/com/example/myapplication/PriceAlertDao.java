@@ -13,12 +13,16 @@ public interface PriceAlertDao {
     @Insert
     void insert(PriceAlert alert);
 
-    @Query("SELECT * FROM price_alerts")
-    List<PriceAlert> getAllAlerts();
+    @Update
+    void update(PriceAlert alert);  // ← 🔄 Room سيستخدم هذا لتحديث isTriggered
 
     @Delete
-    void deleteAlert(PriceAlert alert);  // ← الآن يقبل الكائن مباشرة
+    void delete(PriceAlert alert);
 
-    @Update
-    void updateAlert(PriceAlert alert);  // لتعديل التنبيه لاحقًا
+    @Query("SELECT * FROM price_alerts")
+    List<PriceAlert> getAllAlerts();   // لعرضها في AlertActivity
+
+    // 🟢 مهم جدًا للخدمة → للحصول على فقط *الغير مفعّلة*
+    @Query("SELECT * FROM price_alerts WHERE isTriggered = 0")
+    List<PriceAlert> getActiveAlerts();  // 🔥 هذا هو اللي تستعمله في PriceService
 }

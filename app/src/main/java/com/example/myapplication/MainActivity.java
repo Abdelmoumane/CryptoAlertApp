@@ -1,17 +1,15 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import androidx.appcompat.app.AppCompatDelegate;
-import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
-import android.view.KeyEvent;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
@@ -20,11 +18,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.gson.Gson;
@@ -33,7 +32,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -50,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // ⭐ ضبط الثيم قبل عرض الشاشة
+        // 🔥 ثيم قبل عرض الشاشة
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -60,35 +58,33 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ⭐ Bottom Navigation
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
-        bottomNav.setSelectedItemId(R.id.nav_home);
+        Intent serviceIntent = new Intent(this, PriceService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
+        Log.d("SERVICE_TEST", "STARTED FROM MAIN ✔");
 
-        // 🌗 Theme Switcher
+        // 🌙 زر الثيم (يجب أن يكون بعد setContentView)
         Switch switchTheme = findViewById(R.id.switchTheme);
         switchTheme.setChecked(isDarkMode);
 
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             prefs.edit().putBoolean("dark_mode", isChecked).apply();
-
-            recreate(); // أو  finish(); startActivity(getIntent());
-
+            AppCompatDelegate.setDefaultNightMode(
+                    isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+            );
+            recreate(); // ← مهم جدًا ليتم تحديث الثيم فورًا
         });
 
 
-
-        // 🛡 الصلاحيات
+        // 🛡 أندرويد 13 يحتاج إذن للإشعار
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
             }
         }
 
-        // 🚀 Worker
-        testWorker();
-
-        // 🔗 Views
+        // 🔗 RecyclerView + Adapter
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
         swipeRefresh = findViewById(R.id.swipeRefresh);
@@ -107,16 +103,7 @@ public class MainActivity extends AppCompatActivity {
         loadLocalCoins();
     }
 
-    // 🟢 Worker
-    private void testWorker() {
-        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
-                .setInitialDelay(10, TimeUnit.SECONDS)
-                .build();
-
-        WorkManager.getInstance(this).enqueue(request);
-    }
-
-    // 🔽 Bottom Navigation
+    // 📌 Bottom Navigation
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -126,11 +113,11 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
             }
-            else if (id == R.id.nav_notify) {
+            if (id == R.id.nav_notify) {
                 showAlertDialog();
                 return true;
             }
-            else if (id == R.id.nav_whale_alerts) {
+            if (id == R.id.nav_whale_alerts) {
                 startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
             }
@@ -138,7 +125,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 📌 Dialog لإضافة تنبيه
+    // 📌 Dialog لإضافة تنبيه جديد
+    // 📌 Dialog لإضافة تنبيه جديد
+// 📌 Dialog لإضافة تنبيه جديد
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -151,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
+        // ⚠️ هنا تستبدل الكود القديم 👇 بهذا الكود:
         btnSave.setOnClickListener(v -> {
             String symbol = etSymbol.getText().toString().trim().toUpperCase();
             String target = etTarget.getText().toString().trim();
@@ -160,15 +150,29 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+            double targetPrice;
+            try {
+                targetPrice = Double.parseDouble(target);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid price", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             PriceAlert alert = new PriceAlert();
             alert.coinSymbol = symbol;
-            alert.targetPrice = Double.parseDouble(target);
+            alert.targetPrice = targetPrice;
+            alert.isTriggered = false;
 
             new Thread(() -> {
                 AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
+
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Alert saved!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Alert saved! ✔", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
+
+                    // 🔥 نفتح صفحة التنبيهات مباشرة بعد الحفظ
+                    Intent intent = new Intent(MainActivity.this, AlertActivity.class);
+                    startActivity(intent);
                 });
             }).start();
         });
@@ -176,11 +180,12 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+
+
     // 🔍 Search Filter
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 filterCoins(s.toString());
             }
@@ -192,37 +197,16 @@ public class MainActivity extends AppCompatActivity {
     private void setupTabs() {
         findViewById(R.id.btnHot).setOnClickListener(v -> {
             currentFilter = FilterType.HOT;
-            updateTabUI();
             filterCoins(etSearchCoin.getText().toString());
         });
         findViewById(R.id.btnGainers).setOnClickListener(v -> {
             currentFilter = FilterType.GAINERS;
-            updateTabUI();
             filterCoins(etSearchCoin.getText().toString());
         });
         findViewById(R.id.btnLosers).setOnClickListener(v -> {
             currentFilter = FilterType.LOSERS;
-            updateTabUI();
             filterCoins(etSearchCoin.getText().toString());
         });
-    }
-
-    // 🎨 Update Tabs Color
-    private void updateTabUI() {
-        int activeColor = getResources().getColor(R.color.textPrimary);
-        int inactiveColor = getResources().getColor(R.color.textSecondary);
-
-        TextView btnHot = findViewById(R.id.btnHot);
-        TextView btnGainers = findViewById(R.id.btnGainers);
-        TextView btnLosers = findViewById(R.id.btnLosers);
-
-        btnHot.setSelected(currentFilter == FilterType.HOT);
-        btnGainers.setSelected(currentFilter == FilterType.GAINERS);
-        btnLosers.setSelected(currentFilter == FilterType.LOSERS);
-
-        btnHot.setTextColor(btnHot.isSelected() ? activeColor : inactiveColor);
-        btnGainers.setTextColor(btnGainers.isSelected() ? activeColor : inactiveColor);
-        btnLosers.setTextColor(btnLosers.isSelected() ? activeColor : inactiveColor);
     }
 
     // 🔍 Filtering Coins
@@ -237,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
             filtered.add(coin);
         }
         adapter.updateData(filtered);
-        updateTabUI();
     }
 
     // 📂 Load JSON
@@ -259,15 +242,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(this, "ERROR loading JSON!", Toast.LENGTH_SHORT).show();
         }
-
-
-
-    }
-
-    // 🛡 يمنع إعادة بناء الشاشة عند تغيير الثيم لتفادي الاهتزاز والفلاش
-    @Override
-    public void onConfigurationChanged(android.content.res.Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
     }
 
 }

@@ -18,7 +18,7 @@ import java.util.List;
 public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.AlertViewHolder> {
 
     private List<PriceAlert> alertList;
-    private Context context;
+    private final Context context;
 
     public AlertAdapter(List<PriceAlert> alertList, Context context) {
         this.alertList = alertList;
@@ -46,7 +46,7 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.AlertViewHol
         // ❌ زر حذف
         holder.btnDelete.setOnClickListener(v -> {
             new Thread(() -> {
-                AppDatabase.getDatabase(context).priceAlertDao().deleteAlert(alert);
+                AppDatabase.getDatabase(context).priceAlertDao().delete(alert);  // ← تم التعديل هنا
                 ((AlertActivity) context).runOnUiThread(() -> {
                     Toast.makeText(context, "Alert deleted", Toast.LENGTH_SHORT).show();
                     refreshList();
@@ -60,7 +60,7 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.AlertViewHol
         return alertList.size();
     }
 
-    // 📌 تحديث القائمة بعد حذف أو تعديل
+    // 📌 تحديث القائمة بعد الحذف أو التعديل
     private void refreshList() {
         new Thread(() -> {
             alertList = AppDatabase.getDatabase(context).priceAlertDao().getAllAlerts();
@@ -91,7 +91,7 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.AlertViewHol
             alert.targetPrice = newPrice;
 
             new Thread(() -> {
-                AppDatabase.getDatabase(context).priceAlertDao().updateAlert(alert);
+                AppDatabase.getDatabase(context).priceAlertDao().update(alert);  // ← تم التعديل هنا
                 ((AlertActivity) context).runOnUiThread(() -> {
                     Toast.makeText(context, "Alert updated!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
@@ -103,6 +103,7 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.AlertViewHol
         dialog.show();
     }
 
+    // 🧾 ViewHolder
     public static class AlertViewHolder extends RecyclerView.ViewHolder {
         TextView tvSymbol, tvTargetPrice;
         Button btnEdit, btnDelete;

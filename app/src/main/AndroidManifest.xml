@@ -3,18 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 🔐 Permissions -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <!-- (اختياري) إذا كنت ستعمل Data Sync -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <application
-        android:forceDarkAllowed="false"
+        android:name=".App"
+
 
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:forceDarkAllowed="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -24,7 +27,14 @@
 
 
 
+        <!-- 🏃 Foreground Service -->
+        <service
+            android:name=".PriceService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />   <!-- 🔥 مهم جدًا -->
 
+
+        <!-- 🎯 Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -35,18 +45,20 @@
             </intent-filter>
         </activity>
 
-
-
-
         <!-- 📈 Chart -->
-        <activity android:name=".CoinChartActivity" android:exported="false" />
+        <activity
+            android:name=".CoinChartActivity"
+            android:exported="false" />
 
         <!-- 📢 My Alerts -->
-        <activity android:name=".AlertActivity" android:exported="false" />
+        <activity
+            android:name=".AlertActivity"
+            android:exported="false" />
 
         <!-- 🐋 Whale Alerts -->
-        <activity android:name=".WhaleAlertsActivity" />
+        <activity
+            android:name=".WhaleAlertsActivity"
+            android:exported="false" />
 
     </application>
-
 </manifest>
