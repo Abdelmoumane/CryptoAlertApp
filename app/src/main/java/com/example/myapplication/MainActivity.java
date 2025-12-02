@@ -13,8 +13,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
-import android.widget.TextView;
 import android.widget.Toast;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+
+
+
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,10 +29,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.gson.Gson;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,11 @@ public class MainActivity extends AppCompatActivity {
     private MarketAdapter adapter;
     private List<Coin> allCoinsList = new ArrayList<>();
     private EditText etSearchCoin;
+
+    private SwipeRefreshLayout swipeRefresh;
+
+
+    private MarketRepository marketRepository;   // ✅ الريبو الجديد
 
     private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
@@ -55,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // ✅ إنشاء الـ Repository
+        marketRepository = new MarketRepository(this);
 
         // 🚀 تشغيل Foreground Service
         Intent serviceIntent = new Intent(this, PriceService.class);
@@ -86,24 +95,52 @@ public class MainActivity extends AppCompatActivity {
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
 
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+
+// 🌀 سحب للتحديث
+        swipeRefresh.setOnRefreshListener(() -> {
+            loadCoins();   // يعيد تحميل البيانات من CoinGecko أو JSON
+        });
+
         rvCoins.setLayoutManager(new LinearLayoutManager(this));
         adapter = new MarketAdapter(new ArrayList<>(), coin -> {
             Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
             intent.putExtra("coin_id", coin.getId());
             intent.putExtra("coin_symbol", coin.getSymbol());
-            intent.putExtra("coin_price", coin.getPrice());   // 👈 نبعت السعر
+            intent.putExtra("coin_price", coin.getPrice());
             startActivity(intent);
         });
-
         rvCoins.setAdapter(adapter);
 
         setupBottomNavigation();
         setupSearch();
         setupTabs();
-        loadLocalCoins();
+
+        // ✅ بدل loadLocalCoins()
+        loadCoins();
     }
 
-    // ✅ يتأكد أن الرمز موجود في coins.json (من allCoinsList)
+    // ✅ تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
+    private void loadCoins() {
+        if (swipeRefresh != null) {
+            swipeRefresh.setRefreshing(true);
+        }
+
+        marketRepository.getCoins(coins -> {
+            runOnUiThread(() -> {
+                allCoinsList.clear();
+                allCoinsList.addAll(coins);
+                filterCoins("");
+
+                if (swipeRefresh != null) {
+                    swipeRefresh.setRefreshing(false);
+                }
+            });
+        });
+    }
+
+
+    // ✅ يتأكد أن الرمز موجود في الـ list (سواء جاية من API أو JSON)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -168,10 +205,10 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // ✅ تحقق أن العملة موجودة في coins.json
+            // ✅ تحقق أن العملة موجودة في القائمة الحالية
             if (!isValidCoinSymbol(symbolInput)) {
                 Toast.makeText(this, "Coin not found", Toast.LENGTH_SHORT).show();
-                return;   // ❌ لا نكمل → لا ندخلها في Room
+                return;
             }
 
             String symbol = symbolInput.toUpperCase();
@@ -188,7 +225,6 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Alert saved! ✔", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
 
-                    // 🔥 فتح صفحة My Alerts بعد الحفظ
                     Intent intent = new Intent(MainActivity.this, AlertActivity.class);
                     startActivity(intent);
                 });
@@ -239,24 +275,5 @@ public class MainActivity extends AppCompatActivity {
         adapter.updateData(filtered);
     }
 
-    // 📂 Load JSON
-    private void loadLocalCoins() {
-        try {
-            InputStream is = getAssets().open("coins.json");
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
 
-            String json = new String(buffer, StandardCharsets.UTF_8);
-            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
-
-            allCoinsList.clear();
-            allCoinsList.addAll(response.coins);
-            filterCoins("");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "ERROR loading JSON!", Toast.LENGTH_SHORT).show();
-        }
-    }
 }

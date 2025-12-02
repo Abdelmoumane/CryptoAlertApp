@@ -6,7 +6,7 @@ public class Coin {
     private double price;
     private double change_24h;  // هذا مهم لـ GAINERS & LOSERS
 
-    public Coin(String id, String symbol, double price, double change_24h) {
+    public Coin(String id, String symbol, String name, double price, double change_24h) {
         this.id = id;
         this.symbol = symbol;
         this.price = price;

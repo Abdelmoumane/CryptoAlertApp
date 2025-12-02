@@ -51,7 +51,7 @@ dependencies {
     // UI Components
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0") // 👈 أضف دي
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -69,8 +69,9 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
 
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+
+  //  implementation ("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
 
 
     // WorkManager
