@@ -10,7 +10,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -40,10 +39,13 @@ public class CoinChartActivity extends AppCompatActivity {
     private ImageButton btnZoomIn, btnZoomOut;
     private BottomNavigationView bottomNavigationView;
     private List<Long> timestamps = new ArrayList<>();
-    private String coinSymbol;
 
     private Button btn1D, btn7D, btn30D;
-    private TextView tvCoinName;
+    private TextView tvCoinName, tvCurrentPrice;
+
+    private String coinId;      // id في charts.json (bitcoin, solana…)
+    private String coinSymbol;  // الرمز في الواجهة (BTC, SOL…)
+    private String chartId;     // المفتاح المستخدم في charts.json
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,34 +58,54 @@ public class CoinChartActivity extends AppCompatActivity {
         btnZoomOut = findViewById(R.id.btnZoomOut);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         tvCoinName = findViewById(R.id.tvCoinName);
+        tvCurrentPrice = findViewById(R.id.tvCurrentPrice);
         btn1D = findViewById(R.id.btn1D);
         btn7D = findViewById(R.id.btn7D);
         btn30D = findViewById(R.id.btn30D);
 
-        // 2️⃣ استقبال اسم العملة
-        coinSymbol = getIntent().getStringExtra("coin_id");
-        if (coinSymbol == null || coinSymbol.isEmpty()) {
-            coinSymbol = "bitcoin";
+        // 2️⃣ استقبال البيانات من MainActivity
+        Intent intent = getIntent();
+        coinId = intent.getStringExtra("coin_id");          // bitcoin, solana...
+        coinSymbol = intent.getStringExtra("coin_symbol");  // BTC, SOL...
+        double coinPrice = intent.getDoubleExtra("coin_price", -1);
+
+        // قيم افتراضية لو في نقص في الـ extras
+        if (coinId == null && coinSymbol == null) {
+            coinId = "bitcoin";
+            coinSymbol = "BTC";
         }
 
-        // 3️⃣ عرض اسم العملة
+        if (coinSymbol == null || coinSymbol.isEmpty()) {
+            coinSymbol = (coinId != null) ? coinId : "BTC";
+        }
+
+        chartId = (coinId != null) ? coinId.toLowerCase() : coinSymbol.toLowerCase();
+
+        // 3️⃣ عرض اسم العملة + السعر
         tvCoinName.setText(coinSymbol.toUpperCase() + " / USD");
 
+        if (coinPrice >= 0) {
+            tvCurrentPrice.setText(String.format(Locale.getDefault(), "$%.2f", coinPrice));
+        } else {
+            tvCurrentPrice.setText("");
+        }
+
         // 4️⃣ تحميل البيانات
-        loadLocalChartData(coinSymbol, "1d");
+        loadLocalChartData(chartId, "1d");
         setupChartStyle();
+        setActive(btn1D);
 
         // ⏱ الفترات الزمنية
         btn1D.setOnClickListener(v -> {
-            loadLocalChartData(coinSymbol, "1d");
+            loadLocalChartData(chartId, "1d");
             setActive(btn1D);
         });
         btn7D.setOnClickListener(v -> {
-            loadLocalChartData(coinSymbol, "7d");
+            loadLocalChartData(chartId, "7d");
             setActive(btn7D);
         });
         btn30D.setOnClickListener(v -> {
-            loadLocalChartData(coinSymbol, "30d");
+            loadLocalChartData(chartId, "30d");
             setActive(btn30D);
         });
 
@@ -91,7 +113,7 @@ public class CoinChartActivity extends AppCompatActivity {
         btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
         btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
 
-        // 🚀 Bottom Navigation — تمت إضافة showAlertDialog 👌
+        // 🚀 Bottom Navigation
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
@@ -102,7 +124,7 @@ public class CoinChartActivity extends AppCompatActivity {
                 startActivity(new Intent(this, AlertActivity.class));
                 return true;
             } else if (id == R.id.nav_notify) {
-                showAlertDialog(); // 🔥 الآن يعمل بدون أخطاء
+                showAlertDialog();
                 return true;
             } else if (id == R.id.nav_whale_alerts) {
                 startActivity(new Intent(this, WhaleAlertsActivity.class));
@@ -112,6 +134,7 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
+    // ✅ التحقق من أن الرمز موجود في coins.json
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -137,9 +160,8 @@ public class CoinChartActivity extends AppCompatActivity {
         return false;
     }
 
-
     // 🟢 تحميل البيانات من JSON حسب الفترة
-    private void loadLocalChartData(String coinId, String period) {
+    private void loadLocalChartData(String coinKey, String period) {
         try {
             InputStream is = getAssets().open("charts.json");
             byte[] buffer = new byte[is.available()];
@@ -148,7 +170,7 @@ public class CoinChartActivity extends AppCompatActivity {
 
             String json = new String(buffer, StandardCharsets.UTF_8);
             JsonObject allCharts = new Gson().fromJson(json, JsonObject.class);
-            JsonObject coinData = allCharts.getAsJsonObject(coinId.toLowerCase());
+            JsonObject coinData = allCharts.getAsJsonObject(coinKey.toLowerCase());
 
             if (coinData == null || !coinData.has(period)) {
                 Toast.makeText(this, "No data for: " + period, Toast.LENGTH_SHORT).show();
@@ -219,11 +241,10 @@ public class CoinChartActivity extends AppCompatActivity {
         btn1D.setTextColor(Color.GRAY);
         btn7D.setTextColor(Color.GRAY);
         btn30D.setTextColor(Color.GRAY);
-
         activeBtn.setTextColor(Color.BLACK);
     }
 
-    // 📌 🟢🟢 تم إضافة الميثود المفقود هنا (حل نهائي)
+    // 📌 Dialog لإضافة تنبيه من شاشة الشارت
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -236,11 +257,10 @@ public class CoinChartActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
-        // ✅ خُد العملة من الـ Intent (coin_id من MainActivity) وامنع التعديل عليها
-        String symbolFromChart = getIntent().getStringExtra("coin_id");
-        if (symbolFromChart != null) {
-            etSymbol.setText(symbolFromChart.toUpperCase());
-            etSymbol.setEnabled(false);   // مهم: ما يقدرش يغيّرها
+        // نستخدم نفس الرمز المعروض في الشاشة
+        if (coinSymbol != null) {
+            etSymbol.setText(coinSymbol.toUpperCase());
+            etSymbol.setEnabled(false);
         }
 
         btnSave.setOnClickListener(v -> {
@@ -252,7 +272,7 @@ public class CoinChartActivity extends AppCompatActivity {
                 return;
             }
 
-            // 🔍 تأكد أن العملة موجودة في coins.json (زيادة أمان)
+            // تأكيد أن العملة موجودة في coins.json
             if (!isValidCoinSymbol(symbolInput)) {
                 Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
                 return;
@@ -286,5 +306,4 @@ public class CoinChartActivity extends AppCompatActivity {
 
         dialog.show();
     }
-
 }
