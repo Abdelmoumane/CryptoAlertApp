@@ -21,7 +21,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -40,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
     private MarketAdapter adapter;
     private List<Coin> allCoinsList = new ArrayList<>();
     private EditText etSearchCoin;
-    private SwipeRefreshLayout swipeRefresh;
 
     private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
@@ -87,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
         // 🔗 RecyclerView + Adapter
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
-        swipeRefresh = findViewById(R.id.swipeRefresh);
 
         rvCoins.setLayoutManager(new LinearLayoutManager(this));
         adapter = new MarketAdapter(new ArrayList<>(), coin -> {
