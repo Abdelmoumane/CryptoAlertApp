@@ -90,8 +90,11 @@ public class MainActivity extends AppCompatActivity {
         adapter = new MarketAdapter(new ArrayList<>(), coin -> {
             Intent intent = new Intent(MainActivity.this, CoinChartActivity.class);
             intent.putExtra("coin_id", coin.getId());
+            intent.putExtra("coin_symbol", coin.getSymbol());
+            intent.putExtra("coin_price", coin.getPrice());   // 👈 نبعت السعر
             startActivity(intent);
         });
+
         rvCoins.setAdapter(adapter);
 
         setupBottomNavigation();

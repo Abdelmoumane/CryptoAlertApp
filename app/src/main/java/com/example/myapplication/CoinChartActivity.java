@@ -10,6 +10,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -111,6 +112,32 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
+    private boolean isValidCoinSymbol(String symbol) {
+        if (symbol == null || symbol.isEmpty()) return false;
+
+        try {
+            InputStream is = getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            for (Coin coin : response.coins) {
+                if (coin.getSymbol().equalsIgnoreCase(symbol)
+                        || coin.getId().equalsIgnoreCase(symbol)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+
     // 🟢 تحميل البيانات من JSON حسب الفترة
     private void loadLocalChartData(String coinId, String period) {
         try {
@@ -206,27 +233,52 @@ public class CoinChartActivity extends AppCompatActivity {
         EditText etTarget = dialogView.findViewById(R.id.etTarget);
         Button btnSave = dialogView.findViewById(R.id.btnSave);
 
-        etSymbol.setText(coinSymbol.toUpperCase());
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
+        // ✅ خُد العملة من الـ Intent (coin_id من MainActivity) وامنع التعديل عليها
+        String symbolFromChart = getIntent().getStringExtra("coin_id");
+        if (symbolFromChart != null) {
+            etSymbol.setText(symbolFromChart.toUpperCase());
+            etSymbol.setEnabled(false);   // مهم: ما يقدرش يغيّرها
+        }
+
         btnSave.setOnClickListener(v -> {
-            String symbol = etSymbol.getText().toString().trim().toUpperCase();
+            String symbolInput = etSymbol.getText().toString().trim();
             String target = etTarget.getText().toString().trim();
 
-            if (symbol.isEmpty() || target.isEmpty()) {
-                Toast.makeText(this, "Enter all data!", Toast.LENGTH_SHORT).show();
+            if (target.isEmpty()) {
+                Toast.makeText(this, "Enter target price", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 🔍 تأكد أن العملة موجودة في coins.json (زيادة أمان)
+            if (!isValidCoinSymbol(symbolInput)) {
+                Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            double targetPrice;
+            try {
+                targetPrice = Double.parseDouble(target);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid price", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = symbol;
-            alert.targetPrice = Double.parseDouble(target);
+            alert.coinSymbol = symbolInput.toUpperCase();
+            alert.targetPrice = targetPrice;
+            alert.isTriggered = false;
 
             new Thread(() -> {
-                AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
+                AppDatabase.getDatabase(CoinChartActivity.this)
+                        .priceAlertDao()
+                        .insert(alert);
+
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Alert saved!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CoinChartActivity.this,
+                            "Alert Saved!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 });
             }).start();
@@ -234,4 +286,5 @@ public class CoinChartActivity extends AppCompatActivity {
 
         dialog.show();
     }
+
 }

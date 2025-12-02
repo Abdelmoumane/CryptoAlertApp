@@ -3,6 +3,12 @@
     { "id": "bitcoin", "symbol": "btc", "price": 54222.45, "change_24h": 2.15 },
     { "id": "ethereum", "symbol": "eth", "price": 2990.30, "change_24h": -1.35 },
     { "id": "solana", "symbol": "sol", "price": 118.99, "change_24h": 5.60 },
-    { "id": "xrp", "symbol": "xrp", "price": 0.62, "change_24h": -0.75 }
+    { "id": "cardano", "symbol": "ada", "price": 0.52, "change_24h": 3.85 },
+    { "id": "ripple", "symbol": "xrp", "price": 0.69, "change_24h": 1.47 },
+    { "id": "dogecoin", "symbol": "doge", "price": 0.182, "change_24h": 4.60 },
+    { "id": "polkadot", "symbol": "dot", "price": 8.2, "change_24h": 2.50 },
+    { "id": "chainlink", "symbol": "link", "price": 15.9, "change_24h": -0.63 },
+    { "id": "litecoin", "symbol": "ltc", "price": 89, "change_24h": 1.14 },
+    { "id": "avalanche", "symbol": "avax", "price": 38.5, "change_24h": 2.67 }
   ]
 }

@@ -16,7 +16,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.gson.Gson;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class AlertActivity extends AppCompatActivity {
@@ -28,7 +31,7 @@ public class AlertActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // ⭐ استخدم الثيم قبل الشاشة
+        // ⭐ الثيم قبل عرض الشاشة
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -53,16 +56,15 @@ public class AlertActivity extends AppCompatActivity {
                 showAlertDialog();
                 return true;
 
-            } else if (id == R.id.nav_whale_alerts) {  // 🐋 هنا الإضافة الجديدة
+            } else if (id == R.id.nav_whale_alerts) {
                 startActivity(new Intent(this, WhaleAlertsActivity.class));
                 return true;
 
             } else if (id == R.id.nav_alerts) {
-                return true; // انت هنا الآن
+                return true; // أنت هنا الآن
             }
             return false;
         });
-
 
         // 🧭 Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar_alerts);
@@ -73,10 +75,10 @@ public class AlertActivity extends AppCompatActivity {
         rvAlerts = findViewById(R.id.rvAlerts);
         rvAlerts.setLayoutManager(new LinearLayoutManager(this));
 
-        loadAlertsFromDB();  // تم إصلاحها 👈
+        loadAlertsFromDB();
     }
 
-    // ⭐ لكي يظل الثيم ثابت لما نرجع
+    // ⭐ تثبيت الثيم لما نرجع
     @Override
     protected void onResume() {
         super.onResume();
@@ -86,27 +88,47 @@ public class AlertActivity extends AppCompatActivity {
         );
     }
 
+    // ✅ نفس الفكرة: التأكد أن الرمز موجود في coins.json
+    private boolean isValidCoinSymbol(String symbol) {
+        if (symbol == null || symbol.isEmpty()) return false;
+
+        try {
+            InputStream is = getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            for (Coin coin : response.coins) {
+                if (coin.getSymbol().equalsIgnoreCase(symbol)
+                        || coin.getId().equalsIgnoreCase(symbol)) {
+                    return true;  // ✅ العملة موجودة
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false; // ❌ مش لاقيينها
+    }
+
+    // 📌 تحميل التنبيهات من Room
     private void loadAlertsFromDB() {
         new Thread(() -> {
             List<PriceAlert> alerts = AppDatabase.getDatabase(this)
                     .priceAlertDao()
-                    .getAllAlerts();  // ← مهم جدًا!
+                    .getAllAlerts();
 
             runOnUiThread(() -> {
-//                if (alerts.isEmpty()) {
-//                    Toast.makeText(this, "No alerts found", Toast.LENGTH_SHORT).show();
-//                }
-
                 alertAdapter = new AlertAdapter(alerts, AlertActivity.this);
                 rvAlerts.setAdapter(alertAdapter);
             });
         }).start();
     }
 
-
-
-
-    // 📌 Dialog لإضافة تنبيه جديد
+    // 📌 Dialog لإضافة تنبيه جديد من داخل AlertActivity
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -120,12 +142,18 @@ public class AlertActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
 
         btnSave.setOnClickListener(v -> {
-            String symbol = etSymbol.getText().toString().trim();
+            String symbolInput = etSymbol.getText().toString().trim();
             String target = etTarget.getText().toString().trim();
 
-            if (symbol.isEmpty() || target.isEmpty()) {
+            if (symbolInput.isEmpty() || target.isEmpty()) {
                 Toast.makeText(this, "Enter all data", Toast.LENGTH_SHORT).show();
                 return;
+            }
+
+            // 🧠 أولاً: تحقق الرمز موجود في coins.json
+            if (!isValidCoinSymbol(symbolInput)) {
+                Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
+                return;  // ❌ لا تحفظ التنبيه
             }
 
             double targetPrice;
@@ -137,8 +165,9 @@ public class AlertActivity extends AppCompatActivity {
             }
 
             PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = symbol.toUpperCase();
+            alert.coinSymbol = symbolInput.toUpperCase();
             alert.targetPrice = targetPrice;
+            alert.isTriggered = false;
 
             new Thread(() -> {
                 AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
@@ -146,17 +175,17 @@ public class AlertActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Alert Saved!", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
-                    loadAlertsFromDB();  // تحديث القائمة
+                    loadAlertsFromDB();  // تحديث القائمة بعد الإضافة
                 });
             }).start();
         });
 
         dialog.show();
     }
-    // 🛡 لتفادي إعادة بناء الشاشة عند تغيير الثيم (يمنع الفلاش والاهتزاز)
+
+    // 🛡 لتفادي إعادة بناء الشاشة عند تغيير الثيم
     @Override
     public void onConfigurationChanged(android.content.res.Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
-
 }
