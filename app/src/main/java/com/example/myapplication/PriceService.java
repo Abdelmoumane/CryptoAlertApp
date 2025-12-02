@@ -15,6 +15,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.google.gson.Gson;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class PriceService extends Service {
@@ -26,8 +30,11 @@ public class PriceService extends Service {
 
         Log.d("SERVICE_TEST", "PriceService STARTED ✔");
 
-        startForeground(1, createNotification());  // إشعار ثابت
-        handler.post(runnable);  // تشغيل التكرار
+        // إشعار ثابت للخدمة
+        startForeground(1, createNotification());
+
+        // تشغيل التكرار
+        handler.post(runnable);
 
         return START_STICKY;  // يستمر حتى بعد إغلاق التطبيق
     }
@@ -45,24 +52,57 @@ public class PriceService extends Service {
 
                 for (PriceAlert alert : alerts) {
 
-                    double price = getMockPrice();  // لاحقًا API حقيقي
+                    //  نجيب السعر من coins.json بدل random
+                    double price = getPriceForCoin(alert.coinSymbol);
 
+                    Log.d("ALERT_DEBUG",
+                            "Coin=" + alert.coinSymbol +
+                                    " current=" + price +
+                                    " target=" + alert.targetPrice);
+
+                    // لو السعر وصل أو تجاوز الهدف
                     if (price >= alert.targetPrice) {
 
                         sendAlertNotification(alert.coinSymbol + " reached $" + alert.targetPrice);
 
-                        // ⚠ بدلنا update() بـ delete() = حذف مباشر
+                        // حذف التنبيه بعد ما يشتغل → يختفي من My Alerts
                         db.priceAlertDao().delete(alert);
                     }
                 }
 
             }).start();
 
-            handler.postDelayed(this, 10000); // كل 10 ثواني
+            // ⏱ كل 10 ثواني يعيد التشييك
+            handler.postDelayed(this, 10000);
         }
     };
 
-    private double getMockPrice() {
+    /**
+     *  تجيب سعر العملة من coins.json
+     * تطابق بالـ id أو بالـ symbol (عشان لو أنت كتبت BTC أو bitcoin)
+     */
+    private double getPriceForCoin(String coinSymbol) {
+        try {
+            InputStream is = getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            for (Coin coin : response.coins) {
+                if (coin.getId().equalsIgnoreCase(coinSymbol)
+                        || coin.getSymbol().equalsIgnoreCase(coinSymbol)) {
+                    return coin.getPrice();
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // لو مش لاقي العملة في JSON → نرجع لسعر عشوائي احتياطي
         return 45000 + Math.random() * 10000;
     }
 

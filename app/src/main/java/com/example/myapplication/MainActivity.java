@@ -19,10 +19,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.gson.Gson;
@@ -56,11 +56,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 🚀 تشغيل Foreground Service
         Intent serviceIntent = new Intent(this, PriceService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
         Log.d("SERVICE_TEST", "STARTED FROM MAIN ✔");
 
-        // 🌙 زر الثيم (يجب أن يكون بعد setContentView)
+        // 🌙 زر الثيم
         Switch switchTheme = findViewById(R.id.switchTheme);
         switchTheme.setChecked(isDarkMode);
 
@@ -69,11 +70,10 @@ public class MainActivity extends AppCompatActivity {
             AppCompatDelegate.setDefaultNightMode(
                     isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
             );
-            recreate(); // ← مهم جدًا ليتم تحديث الثيم فورًا
+            recreate();
         });
 
-
-        // 🛡 أندرويد 13 يحتاج إذن للإشعار
+        // 🛡 إذن الإشعارات لأندرويد 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -100,6 +100,19 @@ public class MainActivity extends AppCompatActivity {
         loadLocalCoins();
     }
 
+    // ✅ يتأكد أن الرمز موجود في coins.json (من allCoinsList)
+    private boolean isValidCoinSymbol(String symbol) {
+        if (symbol == null || symbol.isEmpty()) return false;
+
+        for (Coin coin : allCoinsList) {
+            if (coin.getSymbol().equalsIgnoreCase(symbol)
+                    || coin.getId().equalsIgnoreCase(symbol)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // 📌 Bottom Navigation
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
@@ -123,8 +136,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 📌 Dialog لإضافة تنبيه جديد
-    // 📌 Dialog لإضافة تنبيه جديد
-// 📌 Dialog لإضافة تنبيه جديد
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -137,12 +148,11 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
-        // ⚠️ هنا تستبدل الكود القديم 👇 بهذا الكود:
         btnSave.setOnClickListener(v -> {
-            String symbol = etSymbol.getText().toString().trim().toUpperCase();
+            String symbolInput = etSymbol.getText().toString().trim();
             String target = etTarget.getText().toString().trim();
 
-            if (symbol.isEmpty() || target.isEmpty()) {
+            if (symbolInput.isEmpty() || target.isEmpty()) {
                 Toast.makeText(this, "Enter all data!", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -154,6 +164,14 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Invalid price", Toast.LENGTH_SHORT).show();
                 return;
             }
+
+            // ✅ تحقق أن العملة موجودة في coins.json
+            if (!isValidCoinSymbol(symbolInput)) {
+                Toast.makeText(this, "Coin not found", Toast.LENGTH_SHORT).show();
+                return;   // ❌ لا نكمل → لا ندخلها في Room
+            }
+
+            String symbol = symbolInput.toUpperCase();
 
             PriceAlert alert = new PriceAlert();
             alert.coinSymbol = symbol;
@@ -167,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Alert saved! ✔", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
 
-                    // 🔥 نفتح صفحة التنبيهات مباشرة بعد الحفظ
+                    // 🔥 فتح صفحة My Alerts بعد الحفظ
                     Intent intent = new Intent(MainActivity.this, AlertActivity.class);
                     startActivity(intent);
                 });
@@ -176,8 +194,6 @@ public class MainActivity extends AppCompatActivity {
 
         dialog.show();
     }
-
-
 
     // 🔍 Search Filter
     private void setupSearch() {
@@ -240,5 +256,4 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "ERROR loading JSON!", Toast.LENGTH_SHORT).show();
         }
     }
-
 }
