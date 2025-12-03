@@ -78,16 +78,12 @@ public class PriceService extends Service {
 
                 // نجيب الأسعار من CoinGecko أو من coins.json (عن طريق الـ Repository)
                 // false = بدون Toast (الخدمة شغالة في الخلفية)
-                marketRepository.getCoins(false, coins -> {
-
-                    // نكمّل في ثريد منفصل عشان Room
+                marketRepository.getCoins(coins -> {
                     new Thread(() -> {
 
                         AppDatabase innerDb = AppDatabase.getDatabase(PriceService.this);
 
                         for (PriceAlert alert : currentAlerts) {
-
-                            // نحاول نلاقي العملة اللي لها نفس الرمز أو الـ id
                             Coin match = null;
                             for (Coin c : coins) {
                                 if (c.getSymbol().equalsIgnoreCase(alert.coinSymbol)
@@ -106,7 +102,6 @@ public class PriceService extends Service {
                                             " current=" + price +
                                             " target=" + alert.targetPrice);
 
-                            // لو السعر وصل أو عدّى الهدف
                             if (price >= alert.targetPrice) {
 
                                 sendAlertNotification(
@@ -114,16 +109,13 @@ public class PriceService extends Service {
                                                 + " reached $" + alert.targetPrice
                                 );
 
-                                // حذف التنبيه بعد ما يشتغل → يختفي من My Alerts
                                 innerDb.priceAlertDao().delete(alert);
                             }
                         }
 
-                        //  بعد ما نخلّص تشييك على كل Alerts نحدّد الدورة القادمة
-                        scheduleNext();
-
                     }).start();
                 });
+
 
             }).start();
         }

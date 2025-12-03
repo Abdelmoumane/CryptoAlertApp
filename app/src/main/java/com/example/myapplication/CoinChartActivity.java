@@ -29,9 +29,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -49,11 +51,11 @@ public class CoinChartActivity extends AppCompatActivity {
     private Button btn1D, btn7D, btn30D;
     private TextView tvCoinName, tvCurrentPrice;
 
-    private String coinId;      // id في CoinGecko / charts.json (bitcoin, solana…)
-    private String coinSymbol;  // الرمز في الواجهة (BTC, SOL…)
-    private String chartId;     // المفتاح المستخدم في charts.json
+    private String coinId;      // id من CoinPaprika (مثلاً btc-bitcoin)
+    private String coinSymbol;  // BTC, ETH...
+    private double coinPrice;
 
-    private CoinGeckoApi api;   // ✅ لطلب الـ OHLC من CoinGecko
+    private CoinPaprikaApi paprikaApi;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,44 +75,41 @@ public class CoinChartActivity extends AppCompatActivity {
 
         // 2️⃣ استقبال البيانات من MainActivity
         Intent intent = getIntent();
-        coinId = intent.getStringExtra("coin_id");          // bitcoin, solana...
-        coinSymbol = intent.getStringExtra("coin_symbol");  // BTC, SOL...
-        double coinPrice = intent.getDoubleExtra("coin_price", -1);
+        coinId = intent.getStringExtra("coin_id");          // من Paprika (مثلاً btc-bitcoin)
+        coinSymbol = intent.getStringExtra("coin_symbol");  // BTC, ETH...
+        coinPrice = intent.getDoubleExtra("coin_price", -1);
 
-        // قيم افتراضية لو في نقص في الـ extras
         if (coinId == null && coinSymbol == null) {
-            coinId = "bitcoin";
+            coinId = "btc-bitcoin";
+            coinSymbol = "BTC";
+        }
+        if (coinSymbol == null || coinSymbol.isEmpty()) {
             coinSymbol = "BTC";
         }
 
-        if (coinSymbol == null || coinSymbol.isEmpty()) {
-            coinSymbol = (coinId != null) ? coinId : "BTC";
-        }
-
-        chartId = (coinId != null) ? coinId.toLowerCase() : coinSymbol.toLowerCase();
-
         // 3️⃣ عرض اسم العملة + السعر
-        tvCoinName.setText(coinSymbol.toUpperCase() + " / USD");
-
+        tvCoinName.setText(coinSymbol.toUpperCase(Locale.ROOT) + " / USD");
         if (coinPrice >= 0) {
             tvCurrentPrice.setText(String.format(Locale.getDefault(), "$%.2f", coinPrice));
         } else {
             tvCurrentPrice.setText("");
         }
 
-        // 4️⃣ تهيئة Retrofit للـ CoinGecko
+        // 4️⃣ تهيئة Retrofit لـ CoinPaprika
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://api.coingecko.com/api/v3/")
+                .baseUrl("https://api.coinpaprika.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        api = retrofit.create(CoinGeckoApi.class);
+        paprikaApi = retrofit.create(CoinPaprikaApi.class);
 
-        // 5️⃣ إعداد شكل الشارت + تحميل أول داتا
+        // 5️⃣ شكل الشارت
         setupChartStyle();
         setActive(btn1D);
-        loadChartData("1d");   // 👈 بدل loadLocalChartData
 
-        // ⏱ الفترات الزمنية
+        // أول تحميل: 1D
+        loadChartData("1d");
+
+        // أزرار الفترات الزمنية
         btn1D.setOnClickListener(v -> {
             setActive(btn1D);
             loadChartData("1d");
@@ -124,14 +123,13 @@ public class CoinChartActivity extends AppCompatActivity {
             loadChartData("30d");
         });
 
-        // 🔍 زووم
+        // زووم
         btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
         btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
 
-        // 🚀 Bottom Navigation
+        // Bottom Navigation
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-
             if (id == R.id.nav_home) {
                 finish();
                 return true;
@@ -149,51 +147,105 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
-    // 🔵 يحاول أولاً CoinGecko → لو فشل يرجع للـ charts.json
-    private void loadChartData(String period) {
-        int days;
+    // 🟢 يختار المفتاح الصحيح داخل charts.json
+    private String getLocalChartKey() {
+        if (coinSymbol == null) return "bitcoin";
+        String sym = coinSymbol.toUpperCase(Locale.ROOT);
+        switch (sym) {
+            case "BTC":  return "bitcoin";
+            case "ETH":  return "ethereum";
+            case "SOL":  return "solana";
+            case "ADA":  return "cardano";
+            case "XRP":  return "xrp";       // عندك كمان ripple لو حبيت
+            case "DOGE": return "dogecoin";
+            case "DOT":  return "polkadot";
+            case "LINK": return "chainlink";
+            case "LTC":  return "litecoin";
+            case "AVAX": return "avalanche";
+            default:
+                return sym.toLowerCase(Locale.ROOT);
+        }
+    }
+
+    // 🕒 نحسب start/end حسب الفترة المطلوبة بصيغة YYYY-MM-DD
+    private String[] getStartEndForPeriod(String period) {
+        int daysBack;
         switch (period) {
             case "7d":
-                days = 7;
+                daysBack = 7;
                 break;
             case "30d":
-                days = 30;
+                daysBack = 30;
                 break;
             default:
-                days = 1;
+                daysBack = 1;
         }
 
-        Call<List<List<Double>>> call = api.getOhlc(chartId, "usd", days);
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        Date end = cal.getTime();
+        cal.add(Calendar.DAY_OF_YEAR, -daysBack);
+        Date start = cal.getTime();
 
-        call.enqueue(new Callback<List<List<Double>>>() {
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        fmt.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        return new String[]{ fmt.format(start), fmt.format(end) };
+    }
+
+    // 🔵 يحاول أولاً CoinPaprika → لو فشل يرجع لـ charts.json
+    private void loadChartData(String period) {
+
+        String localKey = getLocalChartKey();
+
+        if (paprikaApi == null || coinId == null || coinId.isEmpty()) {
+            // لو في مشكلة في الإعدادات نروح على طول للأوفلاين
+            loadLocalChartData(localKey, period, true);
+            return;
+        }
+
+        String[] dates = getStartEndForPeriod(period);
+        String start = dates[0];
+        String end = dates[1];
+
+        Call<List<CoinOhlcvResponse>> call =
+                paprikaApi.getHistoricalOhlcv(coinId, start, end);
+
+        call.enqueue(new Callback<List<CoinOhlcvResponse>>() {
             @Override
-            public void onResponse(Call<List<List<Double>>> call,
-                                   Response<List<List<Double>>> response) {
-                List<List<Double>> data = response.body();
+            public void onResponse(Call<List<CoinOhlcvResponse>> call,
+                                   Response<List<CoinOhlcvResponse>> response) {
 
-                if (!response.isSuccessful() || data == null || data.isEmpty()) {
-                    // 🟥 API فشل → نستخدم JSON
-                    loadLocalChartData(chartId, period, true);
+                List<CoinOhlcvResponse> list = response.body();
+
+                if (!response.isSuccessful() || list == null || list.isEmpty()) {
+                    // فشل الأونلاين → نستخدم charts.json
+                    loadLocalChartData(localKey, period, true);
                     return;
                 }
 
                 List<CandleEntry> entries = new ArrayList<>();
                 timestamps.clear();
 
-                // كل عنصر: [timestamp, open, high, low, close]
-                for (int i = 0; i < data.size(); i++) {
-                    List<Double> point = data.get(i);
-                    long time = point.get(0).longValue();
-                    float open = point.get(1).floatValue();
-                    float high = point.get(2).floatValue();
-                    float low = point.get(3).floatValue();
-                    float close = point.get(4).floatValue();
+                for (int i = 0; i < list.size(); i++) {
+                    CoinOhlcvResponse o = list.get(i);
+
+                    long time = parsePaprikaTime(o.time_open);
+                    float open = (float) o.open;
+                    float high = (float) o.high;
+                    float low  = (float) o.low;
+                    float close= (float) o.close;
 
                     timestamps.add(time);
                     entries.add(new CandleEntry(i, high, low, open, close));
                 }
 
-                CandleDataSet dataSet = new CandleDataSet(entries, coinSymbol.toUpperCase());
+                if (entries.isEmpty()) {
+                    loadLocalChartData(localKey, period, true);
+                    return;
+                }
+
+                CandleDataSet dataSet =
+                        new CandleDataSet(entries, coinSymbol.toUpperCase(Locale.ROOT));
                 dataSet.setDecreasingColor(Color.RED);
                 dataSet.setIncreasingColor(Color.GREEN);
                 dataSet.setShadowColor(Color.GRAY);
@@ -204,40 +256,28 @@ public class CoinChartActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<List<List<Double>>> call, Throwable t) {
-                // 🌐 مفيش نت / Error → نرجع للـ JSON المحلي
-                loadLocalChartData(chartId, period, true);
+            public void onFailure(Call<List<CoinOhlcvResponse>> call, Throwable t) {
+                // مفيش نت → charts.json
+                loadLocalChartData(localKey, period, true);
             }
         });
     }
 
-    // ✅ التحقق من أن الرمز موجود في coins.json (للـ Alert Dialog فقط)
-    private boolean isValidCoinSymbol(String symbol) {
-        if (symbol == null || symbol.isEmpty()) return false;
-
+    // نحول time_open من شكل "2024-11-29T00:00:00Z" إلى millis
+    private long parsePaprikaTime(String timeStr) {
+        if (timeStr == null) return 0L;
         try {
-            InputStream is = getAssets().open("coins.json");
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
-
-            String json = new String(buffer, StandardCharsets.UTF_8);
-            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
-
-            for (Coin coin : response.coins) {
-                if (coin.getSymbol().equalsIgnoreCase(symbol)
-                        || coin.getId().equalsIgnoreCase(symbol)) {
-                    return true;
-                }
-            }
+            SimpleDateFormat sdf =
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date d = sdf.parse(timeStr);
+            return d != null ? d.getTime() : 0L;
         } catch (Exception e) {
-            e.printStackTrace();
+            return 0L;
         }
-
-        return false;
     }
 
-    // 🟢 تحميل البيانات من JSON حسب الفترة (Mock) + Toast بسيط
+    // 🟢 تحميل البيانات من charts.json
     private void loadLocalChartData(String coinKey, String period, boolean showToast) {
         try {
             InputStream is = getAssets().open("charts.json");
@@ -247,10 +287,15 @@ public class CoinChartActivity extends AppCompatActivity {
 
             String json = new String(buffer, StandardCharsets.UTF_8);
             JsonObject allCharts = new Gson().fromJson(json, JsonObject.class);
-            JsonObject coinData = allCharts.getAsJsonObject(coinKey.toLowerCase());
+
+            JsonObject coinData = allCharts.getAsJsonObject(coinKey.toLowerCase(Locale.ROOT));
 
             if (coinData == null || !coinData.has(period)) {
-                Toast.makeText(this, "No data for: " + period, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,
+                        "No local chart data for " + coinKey + " (" + period + ")",
+                        Toast.LENGTH_SHORT).show();
+                candleChart.clear();
+                candleChart.invalidate();
                 return;
             }
 
@@ -261,6 +306,12 @@ public class CoinChartActivity extends AppCompatActivity {
             }
 
             JsonArray ohlcArray = coinData.getAsJsonArray(period);
+            if (ohlcArray.size() == 0) {
+                candleChart.clear();
+                candleChart.invalidate();
+                return;
+            }
+
             List<CandleEntry> entries = new ArrayList<>();
             timestamps.clear();
 
@@ -270,14 +321,15 @@ public class CoinChartActivity extends AppCompatActivity {
                 long time = obj.get("time").getAsLong();
                 float open = obj.get("open").getAsFloat();
                 float high = obj.get("high").getAsFloat();
-                float low = obj.get("low").getAsFloat();
-                float close = obj.get("close").getAsFloat();
+                float low  = obj.get("low").getAsFloat();
+                float close= obj.get("close").getAsFloat();
 
                 timestamps.add(time);
                 entries.add(new CandleEntry(i, high, low, open, close));
             }
 
-            CandleDataSet dataSet = new CandleDataSet(entries, coinSymbol.toUpperCase());
+            CandleDataSet dataSet =
+                    new CandleDataSet(entries, coinSymbol.toUpperCase(Locale.ROOT));
             dataSet.setDecreasingColor(Color.RED);
             dataSet.setIncreasingColor(Color.GREEN);
             dataSet.setShadowColor(Color.GRAY);
@@ -288,13 +340,16 @@ public class CoinChartActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error loading data!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error loading local data!", Toast.LENGTH_SHORT).show();
+            candleChart.clear();
+            candleChart.invalidate();
         }
     }
 
-    // 🧠 تنسيق الشارت (نفس اللي كان عندك)
+    // 🎨 إعداد شكل الشارت
     private void setupChartStyle() {
-        CustomMarkerView markerView = new CustomMarkerView(this, R.layout.marker_view, timestamps);
+        CustomMarkerView markerView = new CustomMarkerView(this,
+                R.layout.marker_view, timestamps);
         candleChart.setMarker(markerView);
 
         candleChart.setBackgroundColor(Color.BLACK);
@@ -328,6 +383,33 @@ public class CoinChartActivity extends AppCompatActivity {
         activeBtn.setTextColor(Color.BLACK);
     }
 
+    // ✅ يتحقق من وجود الرمز في coins.json (لـ Dialog التنبيه)
+    private boolean isValidCoinSymbol(String symbol) {
+        if (symbol == null || symbol.isEmpty()) return false;
+
+        try {
+            InputStream is = getAssets().open("coins.json");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer, StandardCharsets.UTF_8);
+            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
+
+            if (response == null || response.coins == null) return false;
+
+            for (Coin c : response.coins) {
+                if (c.getSymbol().equalsIgnoreCase(symbol)
+                        || c.getId().equalsIgnoreCase(symbol)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     // 📌 Dialog لإضافة تنبيه من شاشة الشارت
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -341,9 +423,8 @@ public class CoinChartActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
-        // نستخدم نفس الرمز المعروض في الشاشة
         if (coinSymbol != null) {
-            etSymbol.setText(coinSymbol.toUpperCase());
+            etSymbol.setText(coinSymbol.toUpperCase(Locale.ROOT));
             etSymbol.setEnabled(false);
         }
 
@@ -356,7 +437,6 @@ public class CoinChartActivity extends AppCompatActivity {
                 return;
             }
 
-            // تأكيد أن العملة موجودة في coins.json
             if (!isValidCoinSymbol(symbolInput)) {
                 Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
                 return;
@@ -371,7 +451,7 @@ public class CoinChartActivity extends AppCompatActivity {
             }
 
             PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = symbolInput.toUpperCase();
+            alert.coinSymbol = symbolInput.toUpperCase(Locale.ROOT);
             alert.targetPrice = targetPrice;
             alert.isTriggered = false;
 

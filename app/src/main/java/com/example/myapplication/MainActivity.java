@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
 
 
-    private MarketRepository marketRepository;   // ✅ الريبو الجديد
+    private MarketRepository marketRepository;   //  الريبو الجديد
 
     private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // 🔥 ثيم قبل عرض الشاشة
+        //  ثيم قبل عرض الشاشة
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ✅ إنشاء الـ Repository
+        //  إنشاء الـ Repository
         marketRepository = new MarketRepository(this);
 
         // 🚀 تشغيل Foreground Service
@@ -116,12 +116,13 @@ public class MainActivity extends AppCompatActivity {
         setupSearch();
         setupTabs();
 
-        // ✅ بدل loadLocalCoins()
+        //  بدل loadLocalCoins()
         loadCoins(false);
     }
 
-    // ✅ تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
-// ✅ تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
+    //  تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
+//  تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
+// تحميل العملات من CoinPaprika أو coins.json
     private void loadCoins(boolean showToast) {
         if (swipeRefresh != null) {
             swipeRefresh.setRefreshing(true);
@@ -143,8 +144,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-    // ✅ يتأكد أن الرمز موجود في الـ list (سواء جاية من API أو JSON)
+    //  يتأكد أن الرمز موجود في الـ list (سواء جاية من API أو JSON)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // ✅ تحقق أن العملة موجودة في القائمة الحالية
+            //  تحقق أن العملة موجودة في القائمة الحالية
             if (!isValidCoinSymbol(symbolInput)) {
                 Toast.makeText(this, "Coin not found", Toast.LENGTH_SHORT).show();
                 return;
@@ -238,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // 🔍 Search Filter
+    //  Search Filter
     private void setupSearch() {
         etSearchCoin.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}

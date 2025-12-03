@@ -93,7 +93,7 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
 
         public CoinViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvSymbol = itemView.findViewById(R.id.tvSymbol);   // فقط Symbol 🔥
+            tvSymbol = itemView.findViewById(R.id.tvSymbol);   // فقط Symbo
             tvPrice  = itemView.findViewById(R.id.tvPrice);
             tvChange = itemView.findViewById(R.id.tvChange);
         }

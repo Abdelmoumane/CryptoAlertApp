@@ -138,7 +138,7 @@ public class AlertActivity extends AppCompatActivity {
             // ✅ هنا نستخدم MarketRepository:
             // لو أونلاين → يتحقق من CoinGecko
             // لو أوفلاين → يرجع تلقائيًا لـ coins.json
-            marketRepository.getCoins(false, new MarketRepository.CoinsCallback() {
+            marketRepository.getCoins(new MarketRepository.CoinsCallback() {
                 @Override
                 public void onResult(List<Coin> coins) {
 

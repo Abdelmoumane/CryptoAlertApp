@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -22,10 +23,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MarketRepository {
 
     private static final String TAG = "MarketRepository";
-    private static final String BASE_URL = "https://api.coingecko.com/api/v3/";
+    private static final String BASE_URL = "https://api.coinpaprika.com/";
 
     private final Context appContext;
-    private final CoinGeckoApi api;
+    private final CoinPaprikaApi api;
 
     public interface CoinsCallback {
         void onResult(List<Coin> coins);
@@ -35,9 +36,9 @@ public class MarketRepository {
         this.appContext = context.getApplicationContext();
 
         OkHttpClient client = new OkHttpClient.Builder()
-                // ⏱ زودنا التايم أوت شوية عشان ما يرجعش للـ mock بسرعة
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
@@ -46,64 +47,79 @@ public class MarketRepository {
                 .client(client)
                 .build();
 
-        api = retrofit.create(CoinGeckoApi.class);
+        api = retrofit.create(CoinPaprikaApi.class);
     }
 
-    // 🔹 تحاول CoinGecko → لو فشل ترجع للـ JSON المحلي
-    // showToast = true → نعرض رسائل live / offline
+    // نسخة مختصرة لو محتاجها في أماكن أخرى
+    public void getCoins(CoinsCallback callback) {
+        getCoins(true, callback);
+    }
+
+    // تحاول أولاً CoinPaprika → لو فشل ترجع للـ JSON المحلي
     public void getCoins(boolean showToast, CoinsCallback callback) {
 
-        Call<List<CoinDto>> call = api.getMarketCoins(
-                "usd",
-                "market_cap_desc",
-                50,
-                1,
-                false,
-                "24h"
-        );
+        Call<List<PaprikaTickerDto>> call = api.getTickers("USD");
 
-        call.enqueue(new Callback<List<CoinDto>>() {
+        call.enqueue(new Callback<List<PaprikaTickerDto>>() {
             @Override
-            public void onResponse(Call<List<CoinDto>> call, Response<List<CoinDto>> response) {
+            public void onResponse(Call<List<PaprikaTickerDto>> call,
+                                   Response<List<PaprikaTickerDto>> response) {
+
                 if (!response.isSuccessful() || response.body() == null) {
-                    Log.w(TAG, "API not successful, using local JSON. code=" + response.code());
+                    Log.w(TAG, "Paprika API not successful, using local JSON");
+                    loadFromLocal(showToast, callback);
+                    return;
+                }
+
+                List<PaprikaTickerDto> dtoList = response.body();
+                List<Coin> result = new ArrayList<>();
+
+                int count = 0;
+                for (PaprikaTickerDto dto : dtoList) {
+                    if (dto == null || dto.quotes == null || dto.quotes.usd == null) continue;
+
+                    double price = dto.quotes.usd.price;
+                    double change24h = dto.quotes.usd.percentChange24h;
+
+                    Coin c = new Coin(
+                            dto.id,   // مثال: "btc-bitcoin" → نستخدمه في الشارت
+                            dto.symbol != null ? dto.symbol.toUpperCase(Locale.ROOT) : "",
+                            dto.name,
+                            price,
+                            change24h
+                    );
+                    result.add(c);
+
+                    // نكتفي بأول 50 عملة
+                    count++;
+                    if (count >= 50) break;
+                }
+
+                if (result.isEmpty()) {
+                    Log.w(TAG, "Paprika returned empty list, using local JSON");
                     loadFromLocal(showToast, callback);
                     return;
                 }
 
                 if (showToast) {
                     Toast.makeText(appContext,
-                            "Using live data (CoinGecko API)",
+                            "Using live data (CoinPaprika API)",
                             Toast.LENGTH_SHORT
                     ).show();
-                }
-
-                List<CoinDto> dtoList = response.body();
-                List<Coin> result = new ArrayList<>();
-
-                for (CoinDto dto : dtoList) {
-                    Coin c = new Coin(
-                            dto.id,
-                            dto.symbol.toUpperCase(),
-                            dto.name,
-                            dto.current_price,
-                            dto.price_change_percentage_24h
-                    );
-                    result.add(c);
                 }
 
                 callback.onResult(result);
             }
 
             @Override
-            public void onFailure(Call<List<CoinDto>> call, Throwable t) {
-                Log.e(TAG, "API error: " + t.getMessage());
+            public void onFailure(Call<List<PaprikaTickerDto>> call, Throwable t) {
+                Log.e(TAG, "Paprika API error: " + t.getMessage());
                 loadFromLocal(showToast, callback);
             }
         });
     }
 
-    // 🔻 لو مفيش نت / أو API وقعت → نقرأ coins.json
+    // أوفلاين من coins.json
     private void loadFromLocal(boolean showToast, CoinsCallback callback) {
         try {
             if (showToast) {
