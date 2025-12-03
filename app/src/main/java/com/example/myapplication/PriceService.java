@@ -15,34 +15,39 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.google.gson.Gson;
-
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class PriceService extends Service {
 
-    Handler handler = new Handler();
+    private Handler handler = new Handler();
+    private MarketRepository marketRepository;   // ✅ نفس الريبو بتاع الهوم
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // نستخدم ApplicationContext جوّه الريبو
+        marketRepository = new MarketRepository(this);
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         Log.d("SERVICE_TEST", "PriceService STARTED ✔");
 
-        // إشعار ثابت للخدمة
+        // إشعار ثابت للخدمة (Foreground Service)
         startForeground(1, createNotification());
 
         // تشغيل التكرار
         handler.post(runnable);
 
-        return START_STICKY;  // يستمر حتى بعد إغلاق التطبيق
+        return START_STICKY;
     }
 
     private final Runnable runnable = new Runnable() {
         @Override
         public void run() {
 
+            // شغل Room في ثريد منفصل
             new Thread(() -> {
 
                 AppDatabase db = AppDatabase.getDatabase(PriceService.this);
@@ -50,61 +55,59 @@ public class PriceService extends Service {
 
                 Log.d("SERVICE_TEST", "📌 Alerts found: " + alerts.size());
 
-                for (PriceAlert alert : alerts) {
+                if (alerts.isEmpty()) return;
 
-                    //  نجيب السعر من coins.json بدل random
-                    double price = getPriceForCoin(alert.coinSymbol);
+                // 🟢 نجيب الأسعار من CoinGecko أو من coins.json (عن طريق الـ Repository)
+                marketRepository.getCoins(coins -> {
 
-                    Log.d("ALERT_DEBUG",
-                            "Coin=" + alert.coinSymbol +
-                                    " current=" + price +
-                                    " target=" + alert.targetPrice);
+                    // نكمل برضه في ثريد عادي عشان Room
+                    new Thread(() -> {
 
-                    // لو السعر وصل أو تجاوز الهدف
-                    if (price >= alert.targetPrice) {
+                        for (PriceAlert alert : alerts) {
 
-                        sendAlertNotification(alert.coinSymbol + " reached $" + alert.targetPrice);
+                            // نحاول نلاقي العملة اللي لها نفس الرمز أو الـ id
+                            Coin match = null;
+                            for (Coin c : coins) {
+                                if (c.getSymbol().equalsIgnoreCase(alert.coinSymbol)
+                                        || c.getId().equalsIgnoreCase(alert.coinSymbol)) {
+                                    match = c;
+                                    break;
+                                }
+                            }
 
-                        // حذف التنبيه بعد ما يشتغل → يختفي من My Alerts
-                        db.priceAlertDao().delete(alert);
-                    }
-                }
+                            if (match == null) continue;
+
+                            double price = match.getPrice();
+
+                            Log.d("ALERT_DEBUG",
+                                    "Coin=" + alert.coinSymbol +
+                                            " current=" + price +
+                                            " target=" + alert.targetPrice);
+
+                            // لو السعر وصل أو عدّى الهدف
+                            if (price >= alert.targetPrice) {
+
+                                sendAlertNotification(
+                                        match.getSymbol().toUpperCase()
+                                                + " reached $" + alert.targetPrice
+                                );
+
+                                // حذف التنبيه بعد ما يشتغل → يختفي من My Alerts
+                                AppDatabase.getDatabase(PriceService.this)
+                                        .priceAlertDao()
+                                        .delete(alert);
+                            }
+                        }
+
+                    }).start();
+                });
 
             }).start();
 
-            // ⏱ كل 10 ثواني يعيد التشييك
+            // ⏱ كل 10 ثواني نعيد التشييك
             handler.postDelayed(this, 10000);
         }
     };
-
-    /**
-     *  تجيب سعر العملة من coins.json
-     * تطابق بالـ id أو بالـ symbol (عشان لو أنت كتبت BTC أو bitcoin)
-     */
-    private double getPriceForCoin(String coinSymbol) {
-        try {
-            InputStream is = getAssets().open("coins.json");
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
-
-            String json = new String(buffer, StandardCharsets.UTF_8);
-            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
-
-            for (Coin coin : response.coins) {
-                if (coin.getId().equalsIgnoreCase(coinSymbol)
-                        || coin.getSymbol().equalsIgnoreCase(coinSymbol)) {
-                    return coin.getPrice();
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // لو مش لاقي العملة في JSON → نرجع لسعر عشوائي احتياطي
-        return 45000 + Math.random() * 10000;
-    }
 
     private void sendAlertNotification(String message) {
 

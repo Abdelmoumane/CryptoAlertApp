@@ -33,6 +33,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 public class CoinChartActivity extends AppCompatActivity {
 
     private CandleStickChart candleChart;
@@ -43,9 +49,11 @@ public class CoinChartActivity extends AppCompatActivity {
     private Button btn1D, btn7D, btn30D;
     private TextView tvCoinName, tvCurrentPrice;
 
-    private String coinId;      // id في charts.json (bitcoin, solana…)
+    private String coinId;      // id في CoinGecko / charts.json (bitcoin, solana…)
     private String coinSymbol;  // الرمز في الواجهة (BTC, SOL…)
     private String chartId;     // المفتاح المستخدم في charts.json
+
+    private CoinGeckoApi api;   // ✅ لطلب الـ OHLC من CoinGecko
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,23 +98,30 @@ public class CoinChartActivity extends AppCompatActivity {
             tvCurrentPrice.setText("");
         }
 
-        // 4️⃣ تحميل البيانات
-        loadLocalChartData(chartId, "1d");
+        // 4️⃣ تهيئة Retrofit للـ CoinGecko
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.coingecko.com/api/v3/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        api = retrofit.create(CoinGeckoApi.class);
+
+        // 5️⃣ إعداد شكل الشارت + تحميل أول داتا
         setupChartStyle();
         setActive(btn1D);
+        loadChartData("1d");   // 👈 بدل loadLocalChartData
 
         // ⏱ الفترات الزمنية
         btn1D.setOnClickListener(v -> {
-            loadLocalChartData(chartId, "1d");
             setActive(btn1D);
+            loadChartData("1d");
         });
         btn7D.setOnClickListener(v -> {
-            loadLocalChartData(chartId, "7d");
             setActive(btn7D);
+            loadChartData("7d");
         });
         btn30D.setOnClickListener(v -> {
-            loadLocalChartData(chartId, "30d");
             setActive(btn30D);
+            loadChartData("30d");
         });
 
         // 🔍 زووم
@@ -134,7 +149,69 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
-    // ✅ التحقق من أن الرمز موجود في coins.json
+    // 🔵 يحاول أولاً CoinGecko → لو فشل يرجع للـ charts.json
+    private void loadChartData(String period) {
+        int days;
+        switch (period) {
+            case "7d":
+                days = 7;
+                break;
+            case "30d":
+                days = 30;
+                break;
+            default:
+                days = 1;
+        }
+
+        Call<List<List<Double>>> call = api.getOhlc(chartId, "usd", days);
+
+        call.enqueue(new Callback<List<List<Double>>>() {
+            @Override
+            public void onResponse(Call<List<List<Double>>> call,
+                                   Response<List<List<Double>>> response) {
+                List<List<Double>> data = response.body();
+
+                if (!response.isSuccessful() || data == null || data.isEmpty()) {
+                    // 🟥 API فشل → نستخدم JSON
+                    loadLocalChartData(chartId, period, true);
+                    return;
+                }
+
+                List<CandleEntry> entries = new ArrayList<>();
+                timestamps.clear();
+
+                // كل عنصر: [timestamp, open, high, low, close]
+                for (int i = 0; i < data.size(); i++) {
+                    List<Double> point = data.get(i);
+                    long time = point.get(0).longValue();
+                    float open = point.get(1).floatValue();
+                    float high = point.get(2).floatValue();
+                    float low = point.get(3).floatValue();
+                    float close = point.get(4).floatValue();
+
+                    timestamps.add(time);
+                    entries.add(new CandleEntry(i, high, low, open, close));
+                }
+
+                CandleDataSet dataSet = new CandleDataSet(entries, coinSymbol.toUpperCase());
+                dataSet.setDecreasingColor(Color.RED);
+                dataSet.setIncreasingColor(Color.GREEN);
+                dataSet.setShadowColor(Color.GRAY);
+                dataSet.setDrawValues(false);
+
+                candleChart.setData(new CandleData(dataSet));
+                candleChart.invalidate();
+            }
+
+            @Override
+            public void onFailure(Call<List<List<Double>>> call, Throwable t) {
+                // 🌐 مفيش نت / Error → نرجع للـ JSON المحلي
+                loadLocalChartData(chartId, period, true);
+            }
+        });
+    }
+
+    // ✅ التحقق من أن الرمز موجود في coins.json (للـ Alert Dialog فقط)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -160,8 +237,8 @@ public class CoinChartActivity extends AppCompatActivity {
         return false;
     }
 
-    // 🟢 تحميل البيانات من JSON حسب الفترة
-    private void loadLocalChartData(String coinKey, String period) {
+    // 🟢 تحميل البيانات من JSON حسب الفترة (Mock) + Toast بسيط
+    private void loadLocalChartData(String coinKey, String period, boolean showToast) {
         try {
             InputStream is = getAssets().open("charts.json");
             byte[] buffer = new byte[is.available()];
@@ -175,6 +252,12 @@ public class CoinChartActivity extends AppCompatActivity {
             if (coinData == null || !coinData.has(period)) {
                 Toast.makeText(this, "No data for: " + period, Toast.LENGTH_SHORT).show();
                 return;
+            }
+
+            if (showToast) {
+                Toast.makeText(this,
+                        "Using offline mock chart data (" + period + ")",
+                        Toast.LENGTH_SHORT).show();
             }
 
             JsonArray ohlcArray = coinData.getAsJsonArray(period);
@@ -204,11 +287,12 @@ public class CoinChartActivity extends AppCompatActivity {
             candleChart.invalidate();
 
         } catch (Exception e) {
+            e.printStackTrace();
             Toast.makeText(this, "Error loading data!", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // 🧠 تنسيق الشارت
+    // 🧠 تنسيق الشارت (نفس اللي كان عندك)
     private void setupChartStyle() {
         CustomMarkerView markerView = new CustomMarkerView(this, R.layout.marker_view, timestamps);
         candleChart.setMarker(markerView);
