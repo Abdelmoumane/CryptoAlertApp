@@ -44,6 +44,8 @@ public class CoinChartActivity extends AppCompatActivity {
 
     private static final String TAG = "CoinChartDebug";
 
+    private MarketRepository marketRepository;
+
     private CandleStickChart candleChart;
     private ImageButton btnZoomIn, btnZoomOut;
     private BottomNavigationView bottomNavigationView;
@@ -64,6 +66,8 @@ public class CoinChartActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_coin_chart);
+
+        marketRepository = new MarketRepository(this);
 
         // ربط العناصر
         candleChart = findViewById(R.id.candleChart);
@@ -402,6 +406,7 @@ public class CoinChartActivity extends AppCompatActivity {
     }
 
     // Dialog إضافة تنبيه (مثل ما كان عندك)
+    // 📌 Dialog لإضافة تنبيه من شاشة الشارت
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -414,6 +419,7 @@ public class CoinChartActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
+        // استخدم نفس الرمز المعروض في الشارت
         if (coinSymbol != null) {
             etSymbol.setText(coinSymbol.toUpperCase(Locale.ROOT));
             etSymbol.setEnabled(false);
@@ -424,12 +430,7 @@ public class CoinChartActivity extends AppCompatActivity {
             String target = etTarget.getText().toString().trim();
 
             if (target.isEmpty()) {
-                Toast.makeText(this, "Enter target price", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            if (!isValidCoinSymbol(symbolInput)) {
-                Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CoinChartActivity.this, "Enter target price", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -437,28 +438,65 @@ public class CoinChartActivity extends AppCompatActivity {
             try {
                 targetPrice = Double.parseDouble(target);
             } catch (NumberFormatException e) {
-                Toast.makeText(this, "Invalid price", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CoinChartActivity.this, "Invalid price", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = symbolInput.toUpperCase(Locale.ROOT);
-            alert.targetPrice = targetPrice;
-            alert.isTriggered = false;
+            if (symbolInput.isEmpty()) {
+                Toast.makeText(CoinChartActivity.this, "Symbol is empty", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-            new Thread(() -> {
-                AppDatabase.getDatabase(CoinChartActivity.this)
-                        .priceAlertDao()
-                        .insert(alert);
+            String symbolUpper = symbolInput.toUpperCase(Locale.ROOT);
+
+            // ⛔ عشان ما يضغط أكثر من مرة
+            btnSave.setEnabled(false);
+
+            // 1️⃣ نحاول أولاً نتحقق من العملة من خلال MarketRepository (نفس داتا الهوم)
+            marketRepository.getCoins(false, coins -> {
+                boolean existsInOnline = false;
+
+                for (Coin c : coins) {
+                    if (c.getSymbol().equalsIgnoreCase(symbolUpper)
+                            || c.getId().equalsIgnoreCase(symbolUpper)) {
+                        existsInOnline = true;
+                        break;
+                    }
+                }
+
+                // 2️⃣ لو ما لقيناه في داتا الهوم، نعمل fallback للـ coins.json (mock)
+                boolean existsFinal = existsInOnline || isValidCoinSymbol(symbolUpper);
 
                 runOnUiThread(() -> {
-                    Toast.makeText(CoinChartActivity.this,
-                            "Alert Saved!", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
+                    if (!existsFinal) {
+                        Toast.makeText(CoinChartActivity.this,
+                                "Coin not found (online & offline)", Toast.LENGTH_SHORT).show();
+                        btnSave.setEnabled(true);
+                        return;
+                    }
+
+                    // ✅ العملة موجودة → نحفظ التنبيه في Room
+                    PriceAlert alert = new PriceAlert();
+                    alert.coinSymbol = symbolUpper;
+                    alert.targetPrice = targetPrice;
+                    alert.isTriggered = false;
+
+                    new Thread(() -> {
+                        AppDatabase.getDatabase(CoinChartActivity.this)
+                                .priceAlertDao()
+                                .insert(alert);
+
+                        runOnUiThread(() -> {
+                            Toast.makeText(CoinChartActivity.this,
+                                    "Alert Saved!", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        });
+                    }).start();
                 });
-            }).start();
+            });
         });
 
         dialog.show();
     }
+
 }

@@ -271,13 +271,33 @@ public class MainActivity extends AppCompatActivity {
         String search = query.toLowerCase();
 
         for (Coin coin : allCoinsList) {
+            // فلترة بالبحث
             if (!coin.getSymbol().toLowerCase().contains(search)) continue;
+
+            // فلترة حسب التاب الحالي
             if (currentFilter == FilterType.GAINERS && coin.getChangePercent24h() <= 0) continue;
             if (currentFilter == FilterType.LOSERS && coin.getChangePercent24h() >= 0) continue;
+
             filtered.add(coin);
         }
+
+        // ✅ ترتيب حسب نوع الفلتر
+        if (currentFilter == FilterType.GAINERS) {
+            // من أعلى ربح إلى أقل (مثلاً 30%، 20%، 5%...)
+            filtered.sort((c1, c2) ->
+                    Double.compare(c2.getChangePercent24h(), c1.getChangePercent24h()));
+        } else if (currentFilter == FilterType.LOSERS) {
+            // من أكبر خسارة إلى أقل (مثلاً -25%، -10%، -3%...)
+            filtered.sort((c1, c2) ->
+                    Double.compare(Math.abs(c2.getChangePercent24h()),
+                            Math.abs(c1.getChangePercent24h())));
+            // لو تفضّلهم من الأقرب للصفر للأبعد، خليه:
+            // filtered.sort((c1, c2) -> Double.compare(c1.getChangePercent24h(), c2.getChangePercent24h()));
+        }
+
         adapter.updateData(filtered);
     }
+
 
 
 }
