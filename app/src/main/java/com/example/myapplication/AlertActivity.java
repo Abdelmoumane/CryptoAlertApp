@@ -16,10 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.gson.Gson;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class AlertActivity extends AppCompatActivity {
@@ -27,6 +24,9 @@ public class AlertActivity extends AppCompatActivity {
     private RecyclerView rvAlerts;
     private AlertAdapter alertAdapter;
     private SharedPreferences prefs;
+
+    // ✅ نستخدم نفس الـ Repository بتاع الهوم
+    private MarketRepository marketRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +40,9 @@ public class AlertActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alerts);
+
+        // ✅ إنشاء الـ Repository
+        marketRepository = new MarketRepository(this);
 
         // 📌 Bottom Navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation_alerts);
@@ -88,32 +91,6 @@ public class AlertActivity extends AppCompatActivity {
         );
     }
 
-    // ✅ نفس الفكرة: التأكد أن الرمز موجود في coins.json
-    private boolean isValidCoinSymbol(String symbol) {
-        if (symbol == null || symbol.isEmpty()) return false;
-
-        try {
-            InputStream is = getAssets().open("coins.json");
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
-
-            String json = new String(buffer, StandardCharsets.UTF_8);
-            CoinLocalResponse response = new Gson().fromJson(json, CoinLocalResponse.class);
-
-            for (Coin coin : response.coins) {
-                if (coin.getSymbol().equalsIgnoreCase(symbol)
-                        || coin.getId().equalsIgnoreCase(symbol)) {
-                    return true;  // ✅ العملة موجودة
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return false; // ❌ مش لاقيينها
-    }
-
     // 📌 تحميل التنبيهات من Room
     private void loadAlertsFromDB() {
         new Thread(() -> {
@@ -150,12 +127,6 @@ public class AlertActivity extends AppCompatActivity {
                 return;
             }
 
-            // 🧠 أولاً: تحقق الرمز موجود في coins.json
-            if (!isValidCoinSymbol(symbolInput)) {
-                Toast.makeText(this, "Coin not found in coins.json", Toast.LENGTH_SHORT).show();
-                return;  // ❌ لا تحفظ التنبيه
-            }
-
             double targetPrice;
             try {
                 targetPrice = Double.parseDouble(target);
@@ -164,20 +135,51 @@ public class AlertActivity extends AppCompatActivity {
                 return;
             }
 
-            PriceAlert alert = new PriceAlert();
-            alert.coinSymbol = symbolInput.toUpperCase();
-            alert.targetPrice = targetPrice;
-            alert.isTriggered = false;
+            // ✅ هنا نستخدم MarketRepository:
+            // لو أونلاين → يتحقق من CoinGecko
+            // لو أوفلاين → يرجع تلقائيًا لـ coins.json
+            marketRepository.getCoins(false, new MarketRepository.CoinsCallback() {
+                @Override
+                public void onResult(List<Coin> coins) {
 
-            new Thread(() -> {
-                AppDatabase.getDatabase(this).priceAlertDao().insert(alert);
+                    boolean found = false;
+                    for (Coin c : coins) {
+                        if (c.getSymbol().equalsIgnoreCase(symbolInput)
+                                || c.getId().equalsIgnoreCase(symbolInput)) {
+                            found = true;
+                            break;
+                        }
+                    }
 
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Alert Saved!", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                    loadAlertsFromDB();  // تحديث القائمة بعد الإضافة
-                });
-            }).start();
+                    if (!found) {
+                        runOnUiThread(() ->
+                                Toast.makeText(AlertActivity.this,
+                                        "Coin not found (online/offline list)",
+                                        Toast.LENGTH_SHORT).show()
+                        );
+                        return;
+                    }
+
+                    // ✅ العملة موجودة → نحفظ التنبيه في Room
+                    PriceAlert alert = new PriceAlert();
+                    alert.coinSymbol = symbolInput.toUpperCase();
+                    alert.targetPrice = targetPrice;
+                    alert.isTriggered = false;
+
+                    new Thread(() -> {
+                        AppDatabase.getDatabase(AlertActivity.this)
+                                .priceAlertDao()
+                                .insert(alert);
+
+                        runOnUiThread(() -> {
+                            Toast.makeText(AlertActivity.this,
+                                    "Alert Saved!", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            loadAlertsFromDB(); // تحديث القائمة
+                        });
+                    }).start();
+                }
+            });
         });
 
         dialog.show();

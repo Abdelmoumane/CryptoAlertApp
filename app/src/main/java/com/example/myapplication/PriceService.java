@@ -15,12 +15,14 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PriceService extends Service {
 
-    private Handler handler = new Handler();
-    private MarketRepository marketRepository;   // ✅ نفس الريبو بتاع الهوم
+    private final Handler handler = new Handler();
+    private MarketRepository marketRepository;   //  نفس الريبو بتاع الهوم
+    private boolean isLoopStarted = false;       //  عشان ما نبدأش الـ loop أكتر من مرة
 
     @Override
     public void onCreate() {
@@ -37,17 +39,27 @@ public class PriceService extends Service {
         // إشعار ثابت للخدمة (Foreground Service)
         startForeground(1, createNotification());
 
-        // تشغيل التكرار
-        handler.post(runnable);
+        //  ابدأ التشييك مرة واحدة فقط
+        if (!isLoopStarted) {
+            isLoopStarted = true;
+            handler.post(runnable);
+        } else {
+            Log.d("SERVICE_TEST", "Loop already running, skip extra post");
+        }
 
         return START_STICKY;
+    }
+
+    //  دالة مساعدة لتحديد التشييك القادم بعد 10 ثوان
+    private void scheduleNext() {
+        handler.postDelayed(runnable, 10_000);
     }
 
     private final Runnable runnable = new Runnable() {
         @Override
         public void run() {
 
-            // شغل Room في ثريد منفصل
+            // نشتغل في ثريد منفصل عشان Room
             new Thread(() -> {
 
                 AppDatabase db = AppDatabase.getDatabase(PriceService.this);
@@ -55,15 +67,25 @@ public class PriceService extends Service {
 
                 Log.d("SERVICE_TEST", "📌 Alerts found: " + alerts.size());
 
-                if (alerts.isEmpty()) return;
+                if (alerts.isEmpty()) {
+                    //  مفيش Alerts → مانحتاجش نكلم CoinGeck
+                    scheduleNext();
+                    return;
+                }
 
-                // 🟢 نجيب الأسعار من CoinGecko أو من coins.json (عن طريق الـ Repository)
-                marketRepository.getCoins(coins -> {
+                // نخلي نسخة نهائية من القائمة عشان نستخدمها جوّه الكول-باك
+                List<PriceAlert> currentAlerts = new ArrayList<>(alerts);
 
-                    // نكمل برضه في ثريد عادي عشان Room
+                // نجيب الأسعار من CoinGecko أو من coins.json (عن طريق الـ Repository)
+                // false = بدون Toast (الخدمة شغالة في الخلفية)
+                marketRepository.getCoins(false, coins -> {
+
+                    // نكمّل في ثريد منفصل عشان Room
                     new Thread(() -> {
 
-                        for (PriceAlert alert : alerts) {
+                        AppDatabase innerDb = AppDatabase.getDatabase(PriceService.this);
+
+                        for (PriceAlert alert : currentAlerts) {
 
                             // نحاول نلاقي العملة اللي لها نفس الرمز أو الـ id
                             Coin match = null;
@@ -93,19 +115,17 @@ public class PriceService extends Service {
                                 );
 
                                 // حذف التنبيه بعد ما يشتغل → يختفي من My Alerts
-                                AppDatabase.getDatabase(PriceService.this)
-                                        .priceAlertDao()
-                                        .delete(alert);
+                                innerDb.priceAlertDao().delete(alert);
                             }
                         }
+
+                        //  بعد ما نخلّص تشييك على كل Alerts نحدّد الدورة القادمة
+                        scheduleNext();
 
                     }).start();
                 });
 
             }).start();
-
-            // ⏱ كل 10 ثواني نعيد التشييك
-            handler.postDelayed(this, 10000);
         }
     };
 
@@ -141,6 +161,7 @@ public class PriceService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        isLoopStarted = false;   // لو الخدمة ماتت ورجعت، نسمح نبدأ loop جديد
         super.onDestroy();
     }
 

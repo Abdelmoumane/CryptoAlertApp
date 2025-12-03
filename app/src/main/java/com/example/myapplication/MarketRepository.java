@@ -4,7 +4,6 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
-
 import com.google.gson.Gson;
 
 import java.io.InputStream;
@@ -25,8 +24,6 @@ public class MarketRepository {
     private static final String TAG = "MarketRepository";
     private static final String BASE_URL = "https://api.coingecko.com/api/v3/";
 
-
-
     private final Context appContext;
     private final CoinGeckoApi api;
 
@@ -38,8 +35,9 @@ public class MarketRepository {
         this.appContext = context.getApplicationContext();
 
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
+                // ⏱ زودنا التايم أوت شوية عشان ما يرجعش للـ mock بسرعة
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
@@ -51,8 +49,9 @@ public class MarketRepository {
         api = retrofit.create(CoinGeckoApi.class);
     }
 
-    // 🔹 دالة واحدة: تحاول CoinGecko → لو فشل ترجع للـ JSON المحلي
-    public void getCoins(CoinsCallback callback) {
+    // 🔹 تحاول CoinGecko → لو فشل ترجع للـ JSON المحلي
+    // showToast = true → نعرض رسائل live / offline
+    public void getCoins(boolean showToast, CoinsCallback callback) {
 
         Call<List<CoinDto>> call = api.getMarketCoins(
                 "usd",
@@ -67,16 +66,17 @@ public class MarketRepository {
             @Override
             public void onResponse(Call<List<CoinDto>> call, Response<List<CoinDto>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Log.w(TAG, "API not successful, using local JSON");
-                    loadFromLocal(callback);
+                    Log.w(TAG, "API not successful, using local JSON. code=" + response.code());
+                    loadFromLocal(showToast, callback);
                     return;
                 }
 
-                // ✅ هنا نعرف إننا شغالين بـ CoinGecko
-                Toast.makeText(appContext,
-                        "Using live data (CoinGecko API)",
-                        Toast.LENGTH_SHORT
-                ).show();
+                if (showToast) {
+                    Toast.makeText(appContext,
+                            "Using live data (CoinGecko API)",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
 
                 List<CoinDto> dtoList = response.body();
                 List<Coin> result = new ArrayList<>();
@@ -95,23 +95,23 @@ public class MarketRepository {
                 callback.onResult(result);
             }
 
-
             @Override
             public void onFailure(Call<List<CoinDto>> call, Throwable t) {
                 Log.e(TAG, "API error: " + t.getMessage());
-                loadFromLocal(callback);
+                loadFromLocal(showToast, callback);
             }
         });
     }
 
-    // 🔻 لو مفيش نت / أو API وقعت → نقرأ coins.json زي زمان
-    private void loadFromLocal(CoinsCallback callback) {
+    // 🔻 لو مفيش نت / أو API وقعت → نقرأ coins.json
+    private void loadFromLocal(boolean showToast, CoinsCallback callback) {
         try {
-            // 🧪 نبلّغ المستخدم إننا رجعنا للـ mock
-            Toast.makeText(appContext,
-                    "Using offline mock data (coins.json)",
-                    Toast.LENGTH_SHORT
-            ).show();
+            if (showToast) {
+                Toast.makeText(appContext,
+                        "Using offline mock data (coins.json)",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
 
             InputStream is = appContext.getAssets().open("coins.json");
             byte[] buffer = new byte[is.available()];
@@ -131,5 +131,4 @@ public class MarketRepository {
             callback.onResult(new ArrayList<>());
         }
     }
-
 }

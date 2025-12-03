@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
 // 🌀 سحب للتحديث
         swipeRefresh.setOnRefreshListener(() -> {
-            loadCoins();   // يعيد تحميل البيانات من CoinGecko أو JSON
+            loadCoins(true);   // يعيد تحميل البيانات من CoinGecko أو JSON
         });
 
         rvCoins.setLayoutManager(new LinearLayoutManager(this));
@@ -117,16 +117,17 @@ public class MainActivity extends AppCompatActivity {
         setupTabs();
 
         // ✅ بدل loadLocalCoins()
-        loadCoins();
+        loadCoins(false);
     }
 
     // ✅ تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
-    private void loadCoins() {
+// ✅ تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
+    private void loadCoins(boolean showToast) {
         if (swipeRefresh != null) {
             swipeRefresh.setRefreshing(true);
         }
 
-        marketRepository.getCoins(coins -> {
+        marketRepository.getCoins(showToast, coins -> {
             runOnUiThread(() -> {
                 allCoinsList.clear();
                 allCoinsList.addAll(coins);
@@ -138,6 +139,9 @@ public class MainActivity extends AppCompatActivity {
             });
         });
     }
+
+
+
 
 
     // ✅ يتأكد أن الرمز موجود في الـ list (سواء جاية من API أو JSON)
