@@ -14,8 +14,5 @@ public interface CoinPaprikaApi {
             @Query("quotes") String quotes  // "USD"
     );
 
-    @GET("v1/coins/{coin_id}/ohlcv/today")
-    Call<List<CoinOhlcvResponse>> getOhlcvToday(
-            @Path("coin_id") String coinId
-    );
+
 }

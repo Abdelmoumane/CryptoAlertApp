@@ -16,37 +16,50 @@ import java.util.Locale;
 
 public class CustomMarkerView extends MarkerView {
 
-    private final TextView tvDate, tvOpen, tvHigh, tvLow, tvClose;
+    private final TextView tvDate;
+    private final TextView tvOpen;
+    private final TextView tvHigh;
+    private final TextView tvLow;
+    private final TextView tvClose;
+
     private final List<Long> timestamps;
+
+    // ⬅⬅ هنا نضيف الوقت مع التاريخ
+    private final SimpleDateFormat dateTimeFormat =
+            new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
 
     public CustomMarkerView(Context context, int layoutResource, List<Long> timestamps) {
         super(context, layoutResource);
         this.timestamps = timestamps;
 
-        tvDate  = findViewById(R.id.tvDate);
-        tvOpen  = findViewById(R.id.tvOpen);
-        tvHigh  = findViewById(R.id.tvHigh);
-        tvLow   = findViewById(R.id.tvLow);
-        tvClose = findViewById(R.id.tvClose);
+        tvDate = findViewById(R.id.tvDate);
+        tvOpen = findViewById(R.id.tvOpen);
+        tvHigh = findViewById(R.id.tvHigh);
+        tvLow  = findViewById(R.id.tvLow);
+        tvClose= findViewById(R.id.tvClose);
     }
 
-    // 🔥 هذه الدالة يجب أن تكون هنا داخل هذا الكلاس فقط!
     @Override
     public void refreshContent(Entry e, Highlight highlight) {
+        int index = (int) e.getX();
+
+        if (index >= 0 && index < timestamps.size()) {
+            long ts = timestamps.get(index);
+            String dateTime = dateTimeFormat.format(new Date(ts));
+            tvDate.setText(dateTime);  // ⬅⬅ الآن يظهر تاريخ + ساعة
+        }
+
         if (e instanceof CandleEntry) {
-            CandleEntry candleEntry = (CandleEntry) e;
-            int index = (int) candleEntry.getX();
-            long timeStamp = timestamps.get(index);
+            CandleEntry ce = (CandleEntry) e;
 
-            tvDate.setText(
-                    new SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                            .format(new Date(timeStamp))
-            );
-
-            tvOpen.setText("Open:  " + candleEntry.getOpen());
-            tvHigh.setText("High:  " + candleEntry.getHigh());
-            tvLow.setText("Low:   " + candleEntry.getLow());
-            tvClose.setText("Close: " + candleEntry.getClose());
+            tvOpen.setText(String.format(Locale.getDefault(),
+                    "Open: %.2f", ce.getOpen()));
+            tvHigh.setText(String.format(Locale.getDefault(),
+                    "High: %.2f", ce.getHigh()));
+            tvLow.setText(String.format(Locale.getDefault(),
+                    "Low: %.2f", ce.getLow()));
+            tvClose.setText(String.format(Locale.getDefault(),
+                    "Close: %.2f", ce.getClose()));
         }
 
         super.refreshContent(e, highlight);
@@ -54,6 +67,6 @@ public class CustomMarkerView extends MarkerView {
 
     @Override
     public MPPointF getOffset() {
-        return new MPPointF(-(getWidth() / 2), -getHeight());
+        return new MPPointF(-(getWidth() / 2f), -getHeight());
     }
 }

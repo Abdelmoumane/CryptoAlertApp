@@ -52,74 +52,76 @@ public class CoinChartActivity extends AppCompatActivity {
     private Button btn1D;
     private TextView tvCoinName, tvCurrentPrice;
 
-    private String coinId;      // id من CoinPaprika (مثلاً btc-bitcoin)
-    private String coinSymbol;  // BTC, ETH...
+    private String coinId;      // من MarketRepository (مثلاً btc-bitcoin, sol-solana ... لو تحتاج لاحقاً)
+    private String coinSymbol;  // BTC, ETH ...
     private double coinPrice;
 
-    private CoinPaprikaApi paprikaApi;
+    // ✅ Binance فقط
+    private BinanceApi binanceApi;
+    private String binanceSymbol;   // مثل BTCUSDT, ETHUSDT ...
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_coin_chart);
 
-        // 1️⃣ ربط العناصر
+        // ربط العناصر
         candleChart = findViewById(R.id.candleChart);
         btnZoomIn = findViewById(R.id.btnZoomIn);
         btnZoomOut = findViewById(R.id.btnZoomOut);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         tvCoinName = findViewById(R.id.tvCoinName);
         tvCurrentPrice = findViewById(R.id.tvCurrentPrice);
-        btn1D = findViewById(R.id.btn1D);
+        btn1D = findViewById(R.id.btn1D);   // تأكد الزر موجود في XML
 
-        // 2️⃣ استقبال البيانات من MainActivity
+        // استلام البيانات من MainActivity
         Intent intent = getIntent();
-        coinId = intent.getStringExtra("coin_id");          // من Paprika (مثلاً btc-bitcoin)
-        coinSymbol = intent.getStringExtra("coin_symbol");  // BTC, ETH...
+        coinId = intent.getStringExtra("coin_id");
+        coinSymbol = intent.getStringExtra("coin_symbol");
         coinPrice = intent.getDoubleExtra("coin_price", -1);
 
-        if (coinId == null || coinId.isEmpty()) {
-            coinId = "btc-bitcoin";
-        }
         if (coinSymbol == null || coinSymbol.isEmpty()) {
             coinSymbol = "BTC";
         }
+        if (coinId == null || coinId.isEmpty()) {
+            coinId = "btc-bitcoin";
+        }
 
-        Log.d(TAG, "onCreate: coinId=" + coinId +
-                ", coinSymbol=" + coinSymbol +
-                ", coinPrice=" + coinPrice);
-
-        // 3️⃣ عرض اسم العملة + السعر
         tvCoinName.setText(coinSymbol.toUpperCase(Locale.ROOT) + " / USD");
         if (coinPrice >= 0) {
-            tvCurrentPrice.setText(
-                    String.format(Locale.getDefault(), "$%.2f", coinPrice)
-            );
+            tvCurrentPrice.setText(String.format(Locale.getDefault(), "$%.2f", coinPrice));
         } else {
             tvCurrentPrice.setText("");
         }
 
-        // 4️⃣ تهيئة Retrofit لـ CoinPaprika
+        // نحول الرمز إلى صيغة Binance (مثلاً BTC → BTCUSDT)
+        binanceSymbol = mapToBinanceSymbol(coinSymbol);
+
+        // إعداد Retrofit لـ Binance
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://api.coinpaprika.com/")
+                .baseUrl("https://api.binance.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        paprikaApi = retrofit.create(CoinPaprikaApi.class);
+        binanceApi = retrofit.create(BinanceApi.class);
 
-        // 5️⃣ شكل الشارت
+        // شكل الشارت
         setupChartStyle();
+        setActive(btn1D);
 
-        // أول تحميل (شمعة اليوم)
-        loadTodayCandle();
+        // أول تحميل: 1D = 24 شمعة ساعة
+        loadChartData1D();
 
-        // زر 1D يعيد التحميل فقط
-        btn1D.setOnClickListener(v -> loadTodayCandle());
+        // الزر الوحيد 1D
+        btn1D.setOnClickListener(v -> {
+            setActive(btn1D);
+            loadChartData1D();
+        });
 
         // زووم
         btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
         btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
 
-        // Bottom Navigation
+        // Bottom Navigation (كما كان عندك)
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
@@ -139,110 +141,25 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
-    // 🟢 نحاول أولاً CoinPaprika (شمعة اليوم) → لو فشل نرجع للـ charts.json (1d)
-    private void loadTodayCandle() {
-        String localKey = getLocalChartKey();
-
-        if (paprikaApi == null || coinId == null || coinId.isEmpty()) {
-            loadLocalChartData(localKey, true);
-            return;
-        }
-
-        Log.d(TAG, "Requesting OHLCV TODAY from CoinPaprika: coinId=" + coinId);
-
-        Call<List<CoinOhlcvResponse>> call =
-                paprikaApi.getOhlcvToday(coinId);
-
-        call.enqueue(new Callback<List<CoinOhlcvResponse>>() {
-            @Override
-            public void onResponse(Call<List<CoinOhlcvResponse>> call,
-                                   Response<List<CoinOhlcvResponse>> response) {
-
-                List<CoinOhlcvResponse> list = response.body();
-
-                if (!response.isSuccessful() || list == null || list.isEmpty()) {
-
-                    Log.e(TAG, "Paprika response NOT successful. " +
-                            "code=" + response.code() +
-                            ", message=" + response.message());
-
-                    try {
-                        if (response.errorBody() != null) {
-                            String errorText = response.errorBody().string();
-                            Log.e(TAG, "Paprika errorBody: " + errorText);
-                        } else {
-                            Log.e(TAG, "Paprika errorBody is null");
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error reading errorBody", e);
-                    }
-
-                    if (list == null) {
-                        Log.e(TAG, "Paprika body is null");
-                    } else {
-                        Log.e(TAG, "Paprika body size = " + list.size());
-                    }
-
-                    loadLocalChartData(localKey, true);
-                    return;
-                }
-
-                Log.d(TAG, "Paprika response OK. items = " + list.size());
-
-                List<CandleEntry> entries = new ArrayList<>();
-                timestamps.clear();
-
-                for (int i = 0; i < list.size(); i++) {
-                    CoinOhlcvResponse o = list.get(i);
-
-                    long time = parsePaprikaTime(o.time_open);
-                    float open = (float) o.open;
-                    float high = (float) o.high;
-                    float low  = (float) o.low;
-                    float close= (float) o.close;
-
-                    timestamps.add(time);
-                    entries.add(new CandleEntry(i, high, low, open, close));
-                }
-
-                if (entries.isEmpty()) {
-                    loadLocalChartData(localKey, true);
-                    return;
-                }
-
-                CandleDataSet dataSet =
-                        new CandleDataSet(entries, coinSymbol.toUpperCase(Locale.ROOT));
-                dataSet.setDecreasingColor(Color.RED);
-                dataSet.setIncreasingColor(Color.GREEN);
-                dataSet.setShadowColor(Color.GRAY);
-                dataSet.setDrawValues(false);
-
-                candleChart.setData(new CandleData(dataSet));
-                candleChart.invalidate();
-            }
-
-            @Override
-            public void onFailure(Call<List<CoinOhlcvResponse>> call, Throwable t) {
-                Log.e(TAG, "Paprika onFailure: " + t.getMessage());
-                loadLocalChartData(localKey, true);
-            }
-        });
-    }
-
-    // 🕒 تحويل time_open من "2024-11-29T00:00:00Z" إلى millis
-    private long parsePaprikaTime(String timeStr) {
-        if (timeStr == null) return 0L;
-        try {
-            SimpleDateFormat sdf =
-                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US);
-            Date d = sdf.parse(timeStr);
-            return d != null ? d.getTime() : 0L;
-        } catch (Exception e) {
-            return 0L;
+    // نحول رمز الكوين لصيغة Binance
+    private String mapToBinanceSymbol(String symbol) {
+        String s = symbol.toUpperCase(Locale.ROOT);
+        switch (s) {
+            case "BTC": return "BTCUSDT";
+            case "ETH": return "ETHUSDT";
+            case "SOL": return "SOLUSDT";
+            case "ADA": return "ADAUSDT";
+            case "XRP": return "XRPUSDT";
+            case "DOGE": return "DOGEUSDT";
+            case "DOT": return "DOTUSDT";
+            case "LINK": return "LINKUSDT";
+            case "LTC": return "LTCUSDT";
+            case "AVAX": return "AVAXUSDT";
+            default:    return s + "USDT";
         }
     }
 
-    // 🟢 اختيار المفتاح الصحيح في charts.json
+    // يختار المفتاح المناسب داخل charts.json للبيانات المحلية
     private String getLocalChartKey() {
         if (coinSymbol == null) return "bitcoin";
         String sym = coinSymbol.toUpperCase(Locale.ROOT);
@@ -257,16 +174,99 @@ public class CoinChartActivity extends AppCompatActivity {
             case "LINK": return "chainlink";
             case "LTC":  return "litecoin";
             case "AVAX": return "avalanche";
-            default:
-                return sym.toLowerCase(Locale.ROOT);
+            default:     return sym.toLowerCase(Locale.ROOT);
         }
     }
 
-    // 🟢 تحميل 1d من charts.json
-    private void loadLocalChartData(String coinKey, boolean showToast) {
-        try {
-            Log.d(TAG, "Loading local chart data: key=" + coinKey + ", period=1d");
+    // تحميل 24 شمعة ساعة من Binance، مع fallback للـ mock JSON
+    private void loadChartData1D() {
+        String localKey = getLocalChartKey();
+        Log.d(TAG, "loadChartData1D() binanceSymbol=" + binanceSymbol +
+                ", localKey=" + localKey);
 
+        if (binanceApi == null) {
+            Log.e(TAG, "Using LOCAL data. reason=no_binance_api");
+            loadLocalChartData(localKey, "1d", true);
+            return;
+        }
+
+        Log.d(TAG, "Requesting 24 * 1h candles from Binance, symbol=" + binanceSymbol);
+
+        Call<List<List<Object>>> call =
+                binanceApi.getKlines(binanceSymbol, "1h", 24);
+
+        call.enqueue(new Callback<List<List<Object>>>() {
+            @Override
+            public void onResponse(Call<List<List<Object>>> call,
+                                   Response<List<List<Object>>> response) {
+
+                if (!response.isSuccessful() || response.body() == null) {
+                    Log.e(TAG, "Using LOCAL data. reason=binance_http_error, code=" + response.code());
+                    loadLocalChartData(localKey, "1d", true);
+                    return;
+                }
+
+                List<List<Object>> data = response.body();
+                if (data.isEmpty()) {
+                    Log.e(TAG, "Using LOCAL data. reason=binance_empty_body");
+                    loadLocalChartData(localKey, "1d", true);
+                    return;
+                }
+
+                List<CandleEntry> entries = new ArrayList<>();
+                timestamps.clear();
+
+                try {
+                    for (int i = 0; i < data.size(); i++) {
+                        List<Object> c = data.get(i);
+
+                        long openTime = ((Number) c.get(0)).longValue();
+                        float open  = Float.parseFloat(c.get(1).toString());
+                        float high  = Float.parseFloat(c.get(2).toString());
+                        float low   = Float.parseFloat(c.get(3).toString());
+                        float close = Float.parseFloat(c.get(4).toString());
+
+                        timestamps.add(openTime);
+                        entries.add(new CandleEntry(i, high, low, open, close));
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Using LOCAL data. reason=binance_parse_error: " + e.getMessage(), e);
+                    loadLocalChartData(localKey, "1d", true);
+                    return;
+                }
+
+                if (entries.isEmpty()) {
+                    Log.e(TAG, "Using LOCAL data. reason=entries_empty_after_parse");
+                    loadLocalChartData(localKey, "1d", true);
+                    return;
+                }
+
+                Log.d(TAG, "ONLINE data OK from Binance. candleCount=" + entries.size());
+
+                CandleDataSet dataSet =
+                        new CandleDataSet(entries, coinSymbol.toUpperCase(Locale.ROOT));
+                dataSet.setDecreasingColor(Color.RED);
+                dataSet.setIncreasingColor(Color.GREEN);
+                dataSet.setShadowColor(Color.GRAY);
+                dataSet.setDrawValues(false);
+
+                candleChart.setData(new CandleData(dataSet));
+                candleChart.invalidate();
+            }
+
+            @Override
+            public void onFailure(Call<List<List<Object>>> call, Throwable t) {
+                Log.e(TAG, "Using LOCAL data. reason=binance_failure: " + t.getMessage(), t);
+                loadLocalChartData(localKey, "1d", true);
+            }
+        });
+    }
+
+    // تحميل البيانات من charts.json (mock offline)
+    private void loadLocalChartData(String coinKey, String period, boolean showToast) {
+        Log.d(TAG, "loadLocalChartData() coinKey=" + coinKey + ", period=" + period);
+
+        try {
             InputStream is = getAssets().open("charts.json");
             byte[] buffer = new byte[is.available()];
             is.read(buffer);
@@ -277,9 +277,10 @@ public class CoinChartActivity extends AppCompatActivity {
 
             JsonObject coinData = allCharts.getAsJsonObject(coinKey.toLowerCase(Locale.ROOT));
 
-            if (coinData == null || !coinData.has("1d")) {
+            if (coinData == null || !coinData.has(period)) {
+                Log.e(TAG, "NO LOCAL DATA for coinKey=" + coinKey + ", period=" + period);
                 Toast.makeText(this,
-                        "No local chart data for " + coinKey + " (1d)",
+                        "No local chart data for " + coinKey + " (" + period + ")",
                         Toast.LENGTH_SHORT).show();
                 candleChart.clear();
                 candleChart.invalidate();
@@ -288,12 +289,13 @@ public class CoinChartActivity extends AppCompatActivity {
 
             if (showToast) {
                 Toast.makeText(this,
-                        "Using offline mock chart data (1d)",
+                        "Using offline mock chart data (" + period + ")",
                         Toast.LENGTH_SHORT).show();
             }
 
-            JsonArray ohlcArray = coinData.getAsJsonArray("1d");
+            JsonArray ohlcArray = coinData.getAsJsonArray(period);
             if (ohlcArray.size() == 0) {
+                Log.e(TAG, "LOCAL DATA ARRAY EMPTY for coinKey=" + coinKey);
                 candleChart.clear();
                 candleChart.invalidate();
                 return;
@@ -306,14 +308,16 @@ public class CoinChartActivity extends AppCompatActivity {
                 JsonObject obj = ohlcArray.get(i).getAsJsonObject();
 
                 long time = obj.get("time").getAsLong();
-                float open = obj.get("open").getAsFloat();
-                float high = obj.get("high").getAsFloat();
-                float low  = obj.get("low").getAsFloat();
-                float close= obj.get("close").getAsFloat();
+                float open  = obj.get("open").getAsFloat();
+                float high  = obj.get("high").getAsFloat();
+                float low   = obj.get("low").getAsFloat();
+                float close = obj.get("close").getAsFloat();
 
                 timestamps.add(time);
                 entries.add(new CandleEntry(i, high, low, open, close));
             }
+
+            Log.d(TAG, "LOCAL data loaded. entries=" + entries.size());
 
             CandleDataSet dataSet =
                     new CandleDataSet(entries, coinSymbol.toUpperCase(Locale.ROOT));
@@ -326,17 +330,17 @@ public class CoinChartActivity extends AppCompatActivity {
             candleChart.invalidate();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error reading LOCAL charts.json: " + e.getMessage(), e);
             Toast.makeText(this, "Error loading local data!", Toast.LENGTH_SHORT).show();
             candleChart.clear();
             candleChart.invalidate();
         }
     }
 
-    // 🎨 إعداد شكل الشارت
+    // شكل الشارت + المحور X بالساعات
     private void setupChartStyle() {
-        CustomMarkerView markerView = new CustomMarkerView(this,
-                R.layout.marker_view, timestamps);
+        CustomMarkerView markerView =
+                new CustomMarkerView(this, R.layout.marker_view, timestamps);
         candleChart.setMarker(markerView);
 
         candleChart.setBackgroundColor(Color.BLACK);
@@ -347,12 +351,14 @@ public class CoinChartActivity extends AppCompatActivity {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextColor(Color.WHITE);
         xAxis.setValueFormatter(new ValueFormatter() {
+            private final SimpleDateFormat fmt =
+                    new SimpleDateFormat("HH:mm", Locale.getDefault());
+
             @Override
             public String getFormattedValue(float value) {
                 int index = Math.round(value);
                 if (index >= 0 && index < timestamps.size()) {
-                    return new SimpleDateFormat("dd MMM", Locale.getDefault())
-                            .format(new Date(timestamps.get(index)));
+                    return fmt.format(new Date(timestamps.get(index)));
                 }
                 return "";
             }
@@ -363,7 +369,12 @@ public class CoinChartActivity extends AppCompatActivity {
         candleChart.getAxisRight().setEnabled(false);
     }
 
-    // ✅ يتحقق من وجود الرمز في coins.json (لـ Dialog التنبيه)
+    private void setActive(Button activeBtn) {
+        btn1D.setTextColor(Color.GRAY);
+        activeBtn.setTextColor(Color.BLACK);
+    }
+
+    // ✅ يتحقق من وجود الرمز في coins.json (نفس الكود القديم)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -390,7 +401,7 @@ public class CoinChartActivity extends AppCompatActivity {
         return false;
     }
 
-    // 📌 Dialog لإضافة تنبيه من شاشة الشارت
+    // Dialog إضافة تنبيه (مثل ما كان عندك)
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
