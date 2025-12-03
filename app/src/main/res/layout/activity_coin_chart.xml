@@ -82,23 +82,7 @@
             android:textColor="@color/textPrimary"
             android:background="@drawable/period_button_bg"/>
 
-        <Button
-            android:id="@+id/btn7D"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:text="1W"
-            android:textColor="@color/textPrimary"
-            android:background="@drawable/period_button_bg"/>
 
-        <Button
-            android:id="@+id/btn30D"
-            android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1"
-            android:text="1M"
-            android:textColor="@color/textPrimary"
-            android:background="@drawable/period_button_bg"/>
     </LinearLayout>
 
     <!-- 🔽 Bottom Navigation -->
