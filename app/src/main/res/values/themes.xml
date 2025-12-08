@@ -7,10 +7,10 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorOnPrimary">@color/textPrimary</item>
 
-        <!-- خلي الخلفية العامة كويندو باكغراوند -->
+        <!-- Mantén el fondo general de CoinPaprika -->
         <item name="android:windowBackground">@color/colorBackground</item>
 
-        <!-- لون السطح للكروت / الـ surface -->
+        <!-- Color de superficie para las tarjetas / el surface -->
         <item name="colorSurface">@color/colorCard</item>
 
     </style>

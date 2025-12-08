@@ -23,13 +23,13 @@ public class PriceService extends Service {
     private static final String TAG = "PriceCheckDebug";
 
     private final Handler handler = new Handler();
-    private MarketRepository marketRepository;   //  نفس الريبو بتاع الهوم
-    private boolean isLoopStarted = false;       //  عشان ما نبدأش الـ loop أكتر من مرة
+    private MarketRepository marketRepository;   // el mismo Repository que en Home
+    private boolean isLoopStarted = false;       // para no iniciar el loop más de una vez
 
     @Override
     public void onCreate() {
         super.onCreate();
-        // نستخدم ApplicationContext جوّه الريبو
+        // Usamos ApplicationContext dentro del repo
         marketRepository = new MarketRepository(this);
     }
 
@@ -38,10 +38,10 @@ public class PriceService extends Service {
 
         Log.d("SERVICE_TEST", "PriceService STARTED ✔");
 
-        // إشعار ثابت للخدمة (Foreground Service)
+        // Notificación fija del servicio (Foreground Service)
         startForeground(1, createNotification());
 
-        //  ابدأ التشييك مرة واحدة فقط
+        // Empezar el check solo una vez
         if (!isLoopStarted) {
             isLoopStarted = true;
             handler.post(runnable);
@@ -52,7 +52,7 @@ public class PriceService extends Service {
         return START_STICKY;
     }
 
-    //  دالة مساعدة لتحديد التشييك القادم بعد 10 ثوان
+    // Función auxiliar para programar el siguiente check después de 10 segundos
     private void scheduleNext() {
         Log.d(TAG, "scheduleNext() called → next check in 10s");
         handler.postDelayed(runnable, 10_000);
@@ -64,27 +64,27 @@ public class PriceService extends Service {
 
             Log.d(TAG, "Runnable started");
 
-            // نشتغل في ثريد منفصل عشان Room
+            // Trabajamos en un hilo separado por Room
             new Thread(() -> {
 
                 AppDatabase db = AppDatabase.getDatabase(PriceService.this);
-                List<PriceAlert> alerts = db.priceAlertDao().getActiveAlerts(); // فقط الغير مفعّلة
+                List<PriceAlert> alerts = db.priceAlertDao().getActiveAlerts(); // solo las no activadas
 
                 Log.d(TAG, "📌 Alerts found: " + alerts.size());
 
                 if (alerts.isEmpty()) {
-                    //  مفيش Alerts → مانحتاجش نجيب أسعار الآن
+                    // No hay alerts → no necesitamos obtener precios ahora
                     scheduleNext();
                     return;
                 }
 
-                // نخلي نسخة نهائية من القائمة عشان نستخدمها جوّه الكول-باك
+                // Hacemos una copia final de la lista para usarla dentro del callback
                 List<PriceAlert> currentAlerts = new ArrayList<>(alerts);
 
-                // نجيب الأسعار من CoinPaprika أو من coins.json (عن طريق الـ Repository)
-                // false = بدون Toast (الخدمة شغالة في الخلفية)
+                // Obtenemos precios de CoinPaprika o de coins.json (a través del Repository)
+                // false = sin Toast (el servicio corre en segundo plano)
                 marketRepository.getCoins(false, coins -> {
-                    // الكول-باك نفسه شغّال على ثريد (لو حاب نخليه ثريد تاني ما في مشكلة)
+                    // El propio callback corre en un hilo (si quieres otro hilo no hay problema)
                     new Thread(() -> {
 
                         try {
@@ -125,7 +125,7 @@ public class PriceService extends Service {
                                     Log.d(TAG, "🔥 ALERT TRIGGERED for " + alert.coinSymbol +
                                             " @ " + alert.targetPrice);
 
-                                    // هنا اخترت أحذف التنبيه بعد التريغر (زي كودك)
+                                    // Aquí elegí borrar la alerta después del trigger (como tu código)
                                     innerDb.priceAlertDao().delete(alert);
                                 }
                             }
@@ -133,7 +133,7 @@ public class PriceService extends Service {
                         } catch (Exception e) {
                             Log.e(TAG, "Error while processing alerts: " + e.getMessage(), e);
                         } finally {
-                            // 👈 مهم: بعد ما نخلص دايمًا نحدد الجولة الجاية
+                            // 👈 Importante: después de terminar siempre programamos la siguiente ronda
                             scheduleNext();
                         }
 
@@ -177,7 +177,7 @@ public class PriceService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacksAndMessages(null);
-        isLoopStarted = false;   // لو الخدمة ماتت ورجعت، نسمح نبدأ loop جديد
+        isLoopStarted = false;   // si el servicio muere y vuelve, permitimos iniciar un loop nuevo
         super.onDestroy();
     }
 

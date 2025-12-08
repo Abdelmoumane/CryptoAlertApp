@@ -16,7 +16,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- 🪙 الاسم والرمز -->
+        <!-- Nombre y símbolo  -->
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
@@ -40,7 +40,7 @@
                 android:textColor="@color/textSecondary"/>
         </LinearLayout>
 
-        <!-- 💰 السعر والتغيير -->
+        <!-- Precio y cambio -->
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"

@@ -4,19 +4,19 @@
     <!-- عند الضغط -->
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <solid android:color="#DDDDDD"/> <!-- رمادي فاتح -->
+            <solid android:color="#DDDDDD"/>
         </shape>
     </item>
 
-    <!-- في Light Mode لما يكون الزر محدد -->
+    <!-- En Modo Claro cuando el botón está seleccionado -->
+
     <item android:state_selected="true">
         <shape android:shape="oval">
             <solid android:color="@color/lightButtonActive"/>
         </shape>
     </item>
 
-    <!-- الحالة العادية -->
-    <item>
+    <!-- Estado normal -->    <item>
         <shape android:shape="oval">
             <solid android:color="@android:color/transparent" />
         </shape>

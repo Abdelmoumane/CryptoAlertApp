@@ -14,15 +14,15 @@ public interface PriceAlertDao {
     void insert(PriceAlert alert);
 
     @Update
-    void update(PriceAlert alert);  // ← 🔄 Room سيستخدم هذا لتحديث isTriggered
+    void update(PriceAlert alert);  // Room usará esto para actualizar isTriggered
 
     @Delete
     void delete(PriceAlert alert);
 
     @Query("SELECT * FROM price_alerts")
-    List<PriceAlert> getAllAlerts();   // لعرضها في AlertActivity
+    List<PriceAlert> getAllAlerts();   // Para mostrarlas en AlertActivity
 
-    // 🟢 مهم جدًا للخدمة → للحصول على فقط *الغير مفعّلة*
+    // Importante para el servicio: obtener solo las no activadas
     @Query("SELECT * FROM price_alerts WHERE isTriggered = 0")
-    List<PriceAlert> getActiveAlerts();  // 🔥 هذا هو اللي تستعمله في PriceService
+    List<PriceAlert> getActiveAlerts();  // Este es el que se usa en PriceService
 }

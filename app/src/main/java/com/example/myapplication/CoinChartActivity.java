@@ -54,13 +54,13 @@ public class CoinChartActivity extends AppCompatActivity {
     private Button btn1D;
     private TextView tvCoinName, tvCurrentPrice;
 
-    private String coinId;      // من MarketRepository (مثلاً btc-bitcoin, sol-solana ... لو تحتاج لاحقاً)
+    private String coinId;      // De MarketRepository (por ejemplo btc-bitcoin, sol-solana ... si lo necesitas más adelante)
     private String coinSymbol;  // BTC, ETH ...
     private double coinPrice;
 
-    // ✅ Binance فقط
+    // Binance solamente
     private BinanceApi binanceApi;
-    private String binanceSymbol;   // مثل BTCUSDT, ETHUSDT ...
+    private String binanceSymbol;   // Como BTCUSDT, ETHUSDT ...
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,16 +69,16 @@ public class CoinChartActivity extends AppCompatActivity {
 
         marketRepository = new MarketRepository(this);
 
-        // ربط العناصر
+        // Enlazar vistas
         candleChart = findViewById(R.id.candleChart);
         btnZoomIn = findViewById(R.id.btnZoomIn);
         btnZoomOut = findViewById(R.id.btnZoomOut);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         tvCoinName = findViewById(R.id.tvCoinName);
         tvCurrentPrice = findViewById(R.id.tvCurrentPrice);
-        btn1D = findViewById(R.id.btn1D);   // تأكد الزر موجود في XML
+        btn1D = findViewById(R.id.btn1D);   // Asegúrate de que el botón exista en el XML
 
-        // استلام البيانات من MainActivity
+        // Recibir datos desde MainActivity
         Intent intent = getIntent();
         coinId = intent.getStringExtra("coin_id");
         coinSymbol = intent.getStringExtra("coin_symbol");
@@ -98,34 +98,34 @@ public class CoinChartActivity extends AppCompatActivity {
             tvCurrentPrice.setText("");
         }
 
-        // نحول الرمز إلى صيغة Binance (مثلاً BTC → BTCUSDT)
+        // Convertimos el símbolo al formato de Binance (por ejemplo BTC → BTCUSDT)
         binanceSymbol = mapToBinanceSymbol(coinSymbol);
 
-        // إعداد Retrofit لـ Binance
+        // Configurar Retrofit para Binance
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.binance.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         binanceApi = retrofit.create(BinanceApi.class);
 
-        // شكل الشارت
+        // Estilo del chart
         setupChartStyle();
         setActive(btn1D);
 
-        // أول تحميل: 1D = 24 شمعة ساعة
+        // Primera carga: 1D = 24 velas de 1 hora
         loadChartData1D();
 
-        // الزر الوحيد 1D
+        // Único botón 1D
         btn1D.setOnClickListener(v -> {
             setActive(btn1D);
             loadChartData1D();
         });
 
-        // زووم
+        // Zoom
         btnZoomIn.setOnClickListener(v -> candleChart.zoomIn());
         btnZoomOut.setOnClickListener(v -> candleChart.zoomOut());
 
-        // Bottom Navigation (كما كان عندك)
+        // Bottom Navigation (como lo tenías)
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
@@ -145,7 +145,7 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
-    // نحول رمز الكوين لصيغة Binance
+    // Convertimos el símbolo de la moneda al formato de Binance
     private String mapToBinanceSymbol(String symbol) {
         String s = symbol.toUpperCase(Locale.ROOT);
         switch (s) {
@@ -163,7 +163,7 @@ public class CoinChartActivity extends AppCompatActivity {
         }
     }
 
-    // يختار المفتاح المناسب داخل charts.json للبيانات المحلية
+    // Elige la clave adecuada dentro de charts.json para los datos locales
     private String getLocalChartKey() {
         if (coinSymbol == null) return "bitcoin";
         String sym = coinSymbol.toUpperCase(Locale.ROOT);
@@ -182,7 +182,7 @@ public class CoinChartActivity extends AppCompatActivity {
         }
     }
 
-    // تحميل 24 شمعة ساعة من Binance، مع fallback للـ mock JSON
+    // Cargar 24 velas de 1 hora desde Binance, con fallback al JSON mock
     private void loadChartData1D() {
         String localKey = getLocalChartKey();
         Log.d(TAG, "loadChartData1D() binanceSymbol=" + binanceSymbol +
@@ -266,7 +266,7 @@ public class CoinChartActivity extends AppCompatActivity {
         });
     }
 
-    // تحميل البيانات من charts.json (mock offline)
+    // Cargar datos desde charts.json (mock offline)
     private void loadLocalChartData(String coinKey, String period, boolean showToast) {
         Log.d(TAG, "loadLocalChartData() coinKey=" + coinKey + ", period=" + period);
 
@@ -341,7 +341,7 @@ public class CoinChartActivity extends AppCompatActivity {
         }
     }
 
-    // شكل الشارت + المحور X بالساعات
+    // Estilo del chart + eje X por horas
     private void setupChartStyle() {
         CustomMarkerView markerView =
                 new CustomMarkerView(this, R.layout.marker_view, timestamps);
@@ -378,7 +378,7 @@ public class CoinChartActivity extends AppCompatActivity {
         activeBtn.setTextColor(Color.BLACK);
     }
 
-    // ✅ يتحقق من وجود الرمز في coins.json (نفس الكود القديم)
+    // Verifica que el símbolo exista en coins.json (mismo código anterior)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -405,8 +405,8 @@ public class CoinChartActivity extends AppCompatActivity {
         return false;
     }
 
-    // Dialog إضافة تنبيه (مثل ما كان عندك)
-    // 📌 Dialog لإضافة تنبيه من شاشة الشارت
+    // Diálogo para añadir alerta (como lo tenías)
+    // 📌 Diálogo para añadir alerta desde la pantalla del chart
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -419,7 +419,7 @@ public class CoinChartActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
-        // استخدم نفس الرمز المعروض في الشارت
+        // Usar el mismo símbolo mostrado en el chart
         if (coinSymbol != null) {
             etSymbol.setText(coinSymbol.toUpperCase(Locale.ROOT));
             etSymbol.setEnabled(false);
@@ -449,10 +449,10 @@ public class CoinChartActivity extends AppCompatActivity {
 
             String symbolUpper = symbolInput.toUpperCase(Locale.ROOT);
 
-            // ⛔ عشان ما يضغط أكثر من مرة
+            // ⛔ Para que no pulse más de una vez
             btnSave.setEnabled(false);
 
-            // 1️⃣ نحاول أولاً نتحقق من العملة من خلال MarketRepository (نفس داتا الهوم)
+            // 1️⃣ Primero intentamos verificar la moneda con MarketRepository (mismos datos de Home)
             marketRepository.getCoins(false, coins -> {
                 boolean existsInOnline = false;
 
@@ -464,7 +464,7 @@ public class CoinChartActivity extends AppCompatActivity {
                     }
                 }
 
-                // 2️⃣ لو ما لقيناه في داتا الهوم، نعمل fallback للـ coins.json (mock)
+                // 2️⃣ Si no está en los datos de Home, hacemos fallback a coins.json (mock)
                 boolean existsFinal = existsInOnline || isValidCoinSymbol(symbolUpper);
 
                 runOnUiThread(() -> {
@@ -475,7 +475,7 @@ public class CoinChartActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // ✅ العملة موجودة → نحفظ التنبيه في Room
+                    // La moneda existe → guardamos la alerta en Room
                     PriceAlert alert = new PriceAlert();
                     alert.coinSymbol = symbolUpper;
                     alert.targetPrice = targetPrice;

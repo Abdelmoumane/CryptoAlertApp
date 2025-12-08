@@ -24,7 +24,8 @@ public class CustomMarkerView extends MarkerView {
 
     private final List<Long> timestamps;
 
-    // ⬅⬅ هنا نضيف الوقت مع التاريخ
+    //  Aquí agregamos la hora junto con la fecha
+
     private final SimpleDateFormat dateTimeFormat =
             new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
 
@@ -46,7 +47,7 @@ public class CustomMarkerView extends MarkerView {
         if (index >= 0 && index < timestamps.size()) {
             long ts = timestamps.get(index);
             String dateTime = dateTimeFormat.format(new Date(ts));
-            tvDate.setText(dateTime);  // ⬅⬅ الآن يظهر تاريخ + ساعة
+            tvDate.setText(dateTime);  //  Ahora muestra fecha + hora
         }
 
         if (e instanceof CandleEntry) {

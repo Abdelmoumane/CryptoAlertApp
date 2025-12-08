@@ -38,29 +38,29 @@ public class WhaleAdapter extends RecyclerView.Adapter<WhaleAdapter.WhaleViewHol
         NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
         String formattedAmount = formatter.format(item.amount_usd);
 
-        // 🪙 اسم العملة - أبيض Bold
+        //  Nombre de la moneda - Blanco Bold
         holder.tvSymbol.setText(item.symbol.toUpperCase());
         holder.tvSymbol.setTextColor(Color.WHITE);
 
-        // 🔢 لون المبلغ → إذا أكثر من 100 مليون = أحمر 👇
+        //  Color del monto → si es más de 100 millones = rojo 👇
         String amountText = formattedAmount + " #" + item.symbol.toUpperCase()
                 + " (" + formattedAmount + " USD)";
 
         if (item.amount_usd > 100_000_000) {
-            holder.tvAmount.setTextColor(Color.parseColor("#FF4D4D")); // أحمر
+            holder.tvAmount.setTextColor(Color.parseColor("#FF4D4D")); // Rojo
         } else {
-            holder.tvAmount.setTextColor(Color.parseColor("#00FF7F")); // أخضر
+            holder.tvAmount.setTextColor(Color.parseColor("#00FF7F")); // Verde
         }
         holder.tvAmount.setText(amountText);
 
-        // 🔁 السطر الثاني → من وإلى مع ألوان تويتر 💙
+        //  Segunda línea → de y hacia con colores tipo Twitter 💙
         String fromToText = "from <font color='#9E9E9E'>" + item.from.owner + "</font> " +
                 "to <font color='#1DA1F2'>" + item.to.owner + "</font>"; // Twitter Blue
 
         holder.tvFromTo.setText(Html.fromHtml(fromToText));
         holder.itemView.setOnClickListener(v -> {
-            // ممكن تفتح صفحة Details هنا
-            // OR Toast للبداية 👇
+            // Puedes abrir una página de Details aquí
+            // OR un Toast para empezar
             Toast.makeText(v.getContext(),
                     item.symbol.toUpperCase() + " clicked",
                     Toast.LENGTH_SHORT).show();

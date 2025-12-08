@@ -4,7 +4,7 @@ public class Coin {
     private String id;
     private String symbol;
     private double price;
-    private double change_24h;  // هذا مهم لـ GAINERS & LOSERS
+    private double change_24h;  //  GAINERS & LOSERS
 
     public Coin(String id, String symbol, String name, double price, double change_24h) {
         this.id = id;

@@ -39,23 +39,22 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
     public void onBindViewHolder(@NonNull CoinViewHolder holder, int position) {
         Coin coin = coins.get(position);
 
-        // **نستخدم فقط رمز العملة بدون الاسم**
         holder.tvSymbol.setText(coin.getSymbol().toUpperCase());
 
-        // **السعر**
+        // **Precio**
         holder.tvPrice.setText(String.format(Locale.US, "$%,.2f", coin.getPrice()));
 
-        // **التغيير**
+        // **Cambio**
         double change = coin.getChangePercent24h();
         holder.tvChange.setText(String.format(Locale.US, "%+.2f%%", change));
         holder.tvChange.setTextColor(
                 change >= 0 ? Color.parseColor("#19A100") : Color.parseColor("#E60000")
         );
 
-        // **عند الضغط → افتح الرسم البياني**
+        // **Al pulsar → abrir el gráfico**
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, CoinChartActivity.class);
-            intent.putExtra("coin_id", coin.getId());  // نرسل الـ ID صح 📌
+            intent.putExtra("coin_id", coin.getId());  // Enviamos el ID correcto
             context.startActivity(intent);
         });
     }
@@ -80,7 +79,7 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
         } else {
             text = text.toLowerCase();
             for (Coin c : coinsFull) {
-                if (c.getSymbol().toLowerCase().contains(text)) {   // فقط symbol
+                if (c.getSymbol().toLowerCase().contains(text)) {   // Solo symbol
                     coins.add(c);
                 }
             }
@@ -93,7 +92,7 @@ public class CoinAdapter extends RecyclerView.Adapter<CoinAdapter.CoinViewHolder
 
         public CoinViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvSymbol = itemView.findViewById(R.id.tvSymbol);   // فقط Symbo
+            tvSymbol = itemView.findViewById(R.id.tvSymbol);   // Solo Symbo
             tvPrice  = itemView.findViewById(R.id.tvPrice);
             tvChange = itemView.findViewById(R.id.tvChange);
         }

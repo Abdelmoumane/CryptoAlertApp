@@ -30,7 +30,7 @@ public class PriceCheckWorker extends Worker {
         super(context, workerParams);
     }
 
-    // 🟢 استدعاء الـ Worker من أي مكان (حتى من Receiver)
+    // Llamar al Worker desde cualquier lugar (incluso desde un Receiver)
     public static void enqueueWork(Context context) {
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(PriceCheckWorker.class)
                 .build();
@@ -46,15 +46,15 @@ public class PriceCheckWorker extends Worker {
 
         for (PriceAlert alert : alerts) {
 
-            // 🟣 السعر الآن من JSON فقط (Offline Mode)
+            // Precio actual desde JSON solamente (Modo Offline)
             double currentPrice = getPriceFromLocalData(alert.coinSymbol);
 
             if (currentPrice == -1) continue;
 
             if (currentPrice >= alert.targetPrice) {
                 sendNotification(alert.coinSymbol, currentPrice);
-                db.priceAlertDao().delete(alert);   // ← هذا هو الاسم الجديد الصحيح
-                // حذف بعد الإشعار
+                db.priceAlertDao().delete(alert);   // Este es el nuevo nombre correcto
+                // Borrar después de la notificación
             }
         }
 
@@ -82,7 +82,7 @@ public class PriceCheckWorker extends Worker {
         notificationManager.notify((int) System.currentTimeMillis(), builder.build());
     }
 
-    // 🟣 جلب السعر من JSON فقط (بدون إنترنت)
+    // Obtener el precio desde JSON solamente (sin Internet)
     private double getPriceFromLocalData(String coinSymbol) {
         try {
             InputStream is = getApplicationContext().getAssets().open("coins.json");
@@ -95,13 +95,13 @@ public class PriceCheckWorker extends Worker {
 
             for (Coin coin : response.coins) {
                 if (coin.getId().equalsIgnoreCase(coinSymbol)) {
-                    return coin.getPrice();   // ← السعر الحالي من JSON فقط!!!!
+                    return coin.getPrice();   // Precio actual desde JSON solamente
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return -1;  // لو فشل
+        return -1;  // Si falla
     }
 
 }

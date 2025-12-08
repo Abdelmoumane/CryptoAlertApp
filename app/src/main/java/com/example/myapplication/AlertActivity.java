@@ -25,13 +25,13 @@ public class AlertActivity extends AppCompatActivity {
     private AlertAdapter alertAdapter;
     private SharedPreferences prefs;
 
-    // ✅ نستخدم نفس الـ Repository بتاع الهوم
+    //  Usamos el mismo Repository de Home
     private MarketRepository marketRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // ⭐ الثيم قبل عرض الشاشة
+        //  Tema antes de mostrar la pantalla
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -41,10 +41,10 @@ public class AlertActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alerts);
 
-        // ✅ إنشاء الـ Repository
+        //  Crear el Repository
         marketRepository = new MarketRepository(this);
 
-        // 📌 Bottom Navigation
+        //  Bottom Navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation_alerts);
         bottomNav.setSelectedItemId(R.id.nav_alerts);
 
@@ -64,24 +64,24 @@ public class AlertActivity extends AppCompatActivity {
                 return true;
 
             } else if (id == R.id.nav_alerts) {
-                return true; // أنت هنا الآن
+                return true; // Estás aquí ahora
             }
             return false;
         });
 
-        // 🧭 Toolbar
+        //  Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar_alerts);
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        // 📌 RecyclerView
+        //  RecyclerView
         rvAlerts = findViewById(R.id.rvAlerts);
         rvAlerts.setLayoutManager(new LinearLayoutManager(this));
 
         loadAlertsFromDB();
     }
 
-    // ⭐ تثبيت الثيم لما نرجع
+    //  Fijar el tema cuando volvemos
     @Override
     protected void onResume() {
         super.onResume();
@@ -91,7 +91,7 @@ public class AlertActivity extends AppCompatActivity {
         );
     }
 
-    // 📌 تحميل التنبيهات من Room
+    //  Cargar alertas desde Room
     private void loadAlertsFromDB() {
         new Thread(() -> {
             List<PriceAlert> alerts = AppDatabase.getDatabase(this)
@@ -105,7 +105,7 @@ public class AlertActivity extends AppCompatActivity {
         }).start();
     }
 
-    // 📌 Dialog لإضافة تنبيه جديد من داخل AlertActivity
+    //  Diálogo para añadir una nueva alerta desde AlertActivity
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -135,9 +135,9 @@ public class AlertActivity extends AppCompatActivity {
                 return;
             }
 
-            // ✅ هنا نستخدم MarketRepository:
-            // لو أونلاين → يتحقق من CoinGecko
-            // لو أوفلاين → يرجع تلقائيًا لـ coins.json
+            //  Aquí usamos MarketRepository:
+            // Si está online → verifica con CoinGecko
+            // Si está offline → vuelve automáticamente a coins.json
             marketRepository.getCoins(new MarketRepository.CoinsCallback() {
                 @Override
                 public void onResult(List<Coin> coins) {
@@ -160,7 +160,7 @@ public class AlertActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // ✅ العملة موجودة → نحفظ التنبيه في Room
+                    //  La moneda existe → guardamos la alerta en Room
                     PriceAlert alert = new PriceAlert();
                     alert.coinSymbol = symbolInput.toUpperCase();
                     alert.targetPrice = targetPrice;
@@ -175,7 +175,7 @@ public class AlertActivity extends AppCompatActivity {
                             Toast.makeText(AlertActivity.this,
                                     "Alert Saved!", Toast.LENGTH_SHORT).show();
                             dialog.dismiss();
-                            loadAlertsFromDB(); // تحديث القائمة
+                            loadAlertsFromDB(); // Actualizar la lista
                         });
                     }).start();
                 }
@@ -185,7 +185,7 @@ public class AlertActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // 🛡 لتفادي إعادة بناء الشاشة عند تغيير الثيم
+    //  Para evitar reconstruir la pantalla al cambiar el tema
     @Override
     public void onConfigurationChanged(android.content.res.Configuration newConfig) {
         super.onConfigurationChanged(newConfig);

@@ -10,7 +10,7 @@
     android:background="@color/colorBackground"
     tools:context=".CoinChartActivity">
 
-    <!-- 🪙 اسم العملة -->
+    <!--coin nombre -->
     <TextView
         android:id="@+id/tvCoinName"
         android:layout_width="match_parent"
@@ -31,7 +31,7 @@
         android:layout_marginTop="4dp"
         android:layout_gravity="center_horizontal"/>
 
-    <!-- 📈 الشارت -->
+    <!--chart-->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -64,8 +64,7 @@
             android:layout_gravity="top|end"/>
     </FrameLayout>
 
-    <!-- 📆 أزرار الفترات الزمنية -->
-    <LinearLayout
+    <!--  Botones de períodos de tiempo -->    <LinearLayout
         android:id="@+id/periodButtonsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -85,7 +84,7 @@
 
     </LinearLayout>
 
-    <!-- 🔽 Bottom Navigation -->
+    <!--  Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"

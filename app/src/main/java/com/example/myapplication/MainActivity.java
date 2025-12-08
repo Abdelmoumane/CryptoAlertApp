@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
 
 
-    private MarketRepository marketRepository;   //  الريبو الجديد
+    private MarketRepository marketRepository;   //  El nuevo repositorio
 
     private enum FilterType { HOT, GAINERS, LOSERS }
     private FilterType currentFilter = FilterType.HOT;
@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        //  ثيم قبل عرض الشاشة
+        //  Tema antes de mostrar la pantalla
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -62,15 +62,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //  إنشاء الـ Repository
+        //  Crear el Repository
         marketRepository = new MarketRepository(this);
 
-        // 🚀 تشغيل Foreground Service
+        //  Iniciar Foreground Service
         Intent serviceIntent = new Intent(this, PriceService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
         Log.d("SERVICE_TEST", "STARTED FROM MAIN ✔");
 
-        // 🌙 زر الثيم
+        //  Switch del tema
         Switch switchTheme = findViewById(R.id.switchTheme);
         switchTheme.setChecked(isDarkMode);
 
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
             recreate();
         });
 
-        // 🛡 إذن الإشعارات لأندرويد 13+
+        //  Permiso de notificaciones para Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -91,15 +91,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 🔗 RecyclerView + Adapter
+        // RecyclerView + Adapter
         rvCoins = findViewById(R.id.rvCoins);
         etSearchCoin = findViewById(R.id.etSearchCoin);
 
         swipeRefresh = findViewById(R.id.swipeRefresh);
 
-// 🌀 سحب للتحديث
+// 🌀 Deslizar para refrescar
         swipeRefresh.setOnRefreshListener(() -> {
-            loadCoins(true);   // يعيد تحميل البيانات من CoinGecko أو JSON
+            loadCoins(true);   // Vuelve a cargar los datos de CoinPaprika o JSON
         });
 
         rvCoins.setLayoutManager(new LinearLayoutManager(this));
@@ -116,13 +116,11 @@ public class MainActivity extends AppCompatActivity {
         setupSearch();
         setupTabs();
 
-        //  بدل loadLocalCoins()
+        //  En lugar de loadLocalCoins()
         loadCoins(false);
     }
 
-    //  تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
-//  تحميل العملات من الريبو (CoinGecko أو JSON لو مفيش نت)
-// تحميل العملات من CoinPaprika أو coins.json
+    // Cargar monedas de CoinPaprika o coins.json
     private void loadCoins(boolean showToast) {
         if (swipeRefresh != null) {
             swipeRefresh.setRefreshing(true);
@@ -144,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    //  يتأكد أن الرمز موجود في الـ list (سواء جاية من API أو JSON)
+    //  Comprueba que el símbolo existe en la lista (ya venga de API o de JSON)
     private boolean isValidCoinSymbol(String symbol) {
         if (symbol == null || symbol.isEmpty()) return false;
 
@@ -157,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    // 📌 Bottom Navigation
+    //  Bottom Navigation
     private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         bottomNav.setOnItemSelectedListener(item -> {
@@ -179,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 📌 Dialog لإضافة تنبيه جديد
+    //  Diálogo para añadir una nueva alerta
     private void showAlertDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add Price Alert");
@@ -209,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            //  تحقق أن العملة موجودة في القائمة الحالية
+            //  Verificar que la moneda existe en la lista actual
             if (!isValidCoinSymbol(symbolInput)) {
                 Toast.makeText(this, "Coin not found", Toast.LENGTH_SHORT).show();
                 return;
@@ -249,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 🧠 Tabs System
+    //  Tabs System
     private void setupTabs() {
         findViewById(R.id.btnHot).setOnClickListener(v -> {
             currentFilter = FilterType.HOT;
@@ -265,33 +263,33 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 🔍 Filtering Coins
+    //  Filtering Coins
     private void filterCoins(String query) {
         List<Coin> filtered = new ArrayList<>();
         String search = query.toLowerCase();
 
         for (Coin coin : allCoinsList) {
-            // فلترة بالبحث
+            // Filtrado por búsqueda
             if (!coin.getSymbol().toLowerCase().contains(search)) continue;
 
-            // فلترة حسب التاب الحالي
+            // Filtrado según la pestaña actual
             if (currentFilter == FilterType.GAINERS && coin.getChangePercent24h() <= 0) continue;
             if (currentFilter == FilterType.LOSERS && coin.getChangePercent24h() >= 0) continue;
 
             filtered.add(coin);
         }
 
-        // ✅ ترتيب حسب نوع الفلتر
+        //  Ordenar según el tipo de filtro
         if (currentFilter == FilterType.GAINERS) {
-            // من أعلى ربح إلى أقل (مثلاً 30%، 20%، 5%...)
+            // De mayor ganancia a menor (por ejemplo 30%, 20%, 5%...)
             filtered.sort((c1, c2) ->
                     Double.compare(c2.getChangePercent24h(), c1.getChangePercent24h()));
         } else if (currentFilter == FilterType.LOSERS) {
-            // من أكبر خسارة إلى أقل (مثلاً -25%، -10%، -3%...)
+            // De mayor pérdida a menor (por ejemplo -25%, -10%, -3%...)
             filtered.sort((c1, c2) ->
                     Double.compare(Math.abs(c2.getChangePercent24h()),
                             Math.abs(c1.getChangePercent24h())));
-            // لو تفضّلهم من الأقرب للصفر للأبعد، خليه:
+            // Si los prefieres del más cercano a cero al más lejano, déjalo así:
             // filtered.sort((c1, c2) -> Double.compare(c1.getChangePercent24h(), c2.getChangePercent24h()));
         }
 

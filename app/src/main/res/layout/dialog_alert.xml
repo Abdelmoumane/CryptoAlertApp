@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:background="@color/colorBackground">
 
-    <!-- 🪙 إدخال الرمز -->
+    <!--  Entrada del símbolo -->
     <EditText
         android:id="@+id/etSymbol"
         android:layout_width="match_parent"
@@ -21,7 +21,8 @@
         android:padding="12dp"
         android:layout_marginBottom="16dp"/>
 
-    <!-- 💰 إدخال السعر -->
+    <!--  Entrada del precio -->
+
     <EditText
         android:id="@+id/etTarget"
         android:layout_width="match_parent"
@@ -34,7 +35,7 @@
         android:padding="12dp"
         android:layout_marginBottom="24dp"/>
 
-    <!-- 💾 زر الحفظ -->
+    <!-- Botón Guardar -->
     <Button
         android:id="@+id/btnSave"
         android:layout_width="match_parent"

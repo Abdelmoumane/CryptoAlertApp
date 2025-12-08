@@ -16,7 +16,7 @@
         android:padding="10dp"
         android:orientation="vertical">
 
-        <!-- 🪙 الرمز -->
+        <!-- symbol -->
         <TextView
             android:id="@+id/tvHotSymbol"
             android:layout_width="wrap_content"
@@ -25,7 +25,7 @@
             android:textStyle="bold"
             android:textSize="16sp"/>
 
-        <!-- 💵 السعر -->
+        <!-- precio -->
         <TextView
             android:id="@+id/tvHotPrice"
             android:layout_width="wrap_content"
@@ -34,7 +34,7 @@
             android:textColor="@color/textSecondary"
             android:textSize="14sp"/>
 
-        <!-- 📈 التغيير -->
+        <!-- change -->
         <TextView
             android:id="@+id/tvHotChange"
             android:layout_width="wrap_content"

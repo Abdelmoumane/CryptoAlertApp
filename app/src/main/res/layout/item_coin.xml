@@ -16,7 +16,7 @@
         android:orientation="horizontal"
         android:background="@color/colorCard">
 
-        <!-- 🟡 رمز العملة (يسار) -->
+        <!-- Símbolo de la moneda (izquierda) -->
         <TextView
             android:id="@+id/tvCoinSymbol"
             android:layout_width="0dp"
@@ -26,7 +26,7 @@
         android:textSize="16sp"
         android:textStyle="bold"/>
 
-        <!-- 💵 السعر -->
+        <!-- precio -->
         <TextView
             android:id="@+id/tvCoinPrice"
             android:layout_width="0dp"
@@ -36,7 +36,7 @@
             android:textColor="@color/textPrimary"
         android:textSize="14sp"/>
 
-        <!-- 📉 النسبة -->
+        <!-- Porcentaje -->
         <TextView
             android:id="@+id/tvCoinChange"
             android:layout_width="0dp"

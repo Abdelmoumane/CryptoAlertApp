@@ -15,9 +15,9 @@ public class PriceAlert {
     public String coinSymbol;
     public double targetPrice;
 
-    public boolean isTriggered; // ⬅ أضف هذا الحقل الجديد
+    public boolean isTriggered; //
 
     public PriceAlert() {
-        this.isTriggered = false;  // ⬅ بشكل افتراضي لم يتم تشغيله
+        this.isTriggered = false;
     }
 }

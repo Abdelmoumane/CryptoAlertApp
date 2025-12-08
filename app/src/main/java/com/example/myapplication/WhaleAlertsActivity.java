@@ -26,7 +26,7 @@ public class WhaleAlertsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // ⭐ الثيم قبل الشاشة
+        //  Tema antes de mostrar la pantalla
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         boolean isDarkMode = prefs.getBoolean("dark_mode", false);
         AppCompatDelegate.setDefaultNightMode(
@@ -46,7 +46,7 @@ public class WhaleAlertsActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerWhale);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // 📌 تحميل البيانات من ملف محلي فقط
+        //  Cargar los datos solo desde un archivo local
         loadFromLocalJson();
 
         setupBottomNavigation();
@@ -92,13 +92,13 @@ public class WhaleAlertsActivity extends AppCompatActivity {
                 return true;
 
             } else if (id == R.id.nav_whale_alerts) {
-                return true; // نحن في هذه الشاشة الآن
+                return true; // Estás en esta pantalla ahora
             }
             return false;
         });
     }
 
-    // 🛡 لمنع إعادة البناء عند تغيير الثيم (يمنع الفلاش)
+    //  Para evitar la reconstrucción al cambiar el tema (evita el parpadeo)
     @Override
     public void onConfigurationChanged(android.content.res.Configuration newConfig) {
         super.onConfigurationChanged(newConfig);

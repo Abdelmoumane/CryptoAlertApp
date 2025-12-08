@@ -50,12 +50,12 @@ public class MarketRepository {
         api = retrofit.create(CoinPaprikaApi.class);
     }
 
-    // نسخة مختصرة لو محتاجها في أماكن أخرى
+    // Versión abreviada por si la necesitas en otros lugares
     public void getCoins(CoinsCallback callback) {
         getCoins(true, callback);
     }
 
-    // تحاول أولاً CoinPaprika → لو فشل ترجع للـ JSON المحلي
+    // Intenta primero CoinPaprika → si falla vuelve al JSON local
     public void getCoins(boolean showToast, CoinsCallback callback) {
 
         Call<List<PaprikaTickerDto>> call = api.getTickers("USD");
@@ -82,7 +82,7 @@ public class MarketRepository {
                     double change24h = dto.quotes.usd.percentChange24h;
 
                     Coin c = new Coin(
-                            dto.id,   // مثال: "btc-bitcoin" → نستخدمه في الشارت
+                            dto.id,   // Ejemplo: "btc-bitcoin" → lo usamos en el chart
                             dto.symbol != null ? dto.symbol.toUpperCase(Locale.ROOT) : "",
                             dto.name,
                             price,
@@ -90,7 +90,7 @@ public class MarketRepository {
                     );
                     result.add(c);
 
-                    // نكتفي بأول 50 عملة
+                    // Nos quedamos con las primeras 50 monedas
                     count++;
                     if (count >= 50) break;
                 }
@@ -119,7 +119,7 @@ public class MarketRepository {
         });
     }
 
-    // أوفلاين من coins.json
+    // Offline desde coins.json
     private void loadFromLocal(boolean showToast, CoinsCallback callback) {
         try {
             if (showToast) {
