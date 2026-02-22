@@ -123,12 +123,6 @@ git clone https://github.com/yourusername/crypto-alert-app.git
 
 ---
 
-## 📷 Screenshots
-
-<img width="1080" height="2400" alt="CoinChartActivity-notify" src="https://github.com/user-attachments/assets/770bf18f-f14d-4e7c-a087-97ef75eb244c" />
-
-
----
 
 ## 🔮 Future Improvements
 
